@@ -23,10 +23,7 @@ function Router() {
   return (
     <Switch>
       {isLoading || !isAuthenticated ? (
-        <>
-          <Route path="/" component={Login} />
-          <Route component={Login} />
-        </>
+        <Route component={Login} />
       ) : (
         <>
           <Route path="/" component={Dashboard} />
