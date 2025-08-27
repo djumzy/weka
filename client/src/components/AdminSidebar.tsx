@@ -10,6 +10,8 @@ import {
   Calendar,
   BarChart3,
   LogOut,
+  Calculator,
+  UserPlus,
 } from "lucide-react";
 
 const navigationItems = [
@@ -18,7 +20,9 @@ const navigationItems = [
   { href: "/members", icon: User, label: "Members" },
   { href: "/transactions", icon: DollarSign, label: "Transactions" },
   { href: "/loans", icon: FileText, label: "Loans" },
+  { href: "/loan-calculator", icon: Calculator, label: "Loan Calculator" },
   { href: "/meetings", icon: Calendar, label: "Meetings" },
+  { href: "/user-management", icon: UserPlus, label: "User Management" },
   { href: "/reports", icon: BarChart3, label: "Reports" },
 ];
 
@@ -39,8 +43,8 @@ export function AdminSidebar() {
             <DollarSign className="w-6 h-6 text-primary-foreground" />
           </div>
           <div>
-            <h1 className="text-lg font-semibold text-foreground">VSLA Admin</h1>
-            <p className="text-sm text-muted-foreground">Community Bank</p>
+            <h1 className="text-lg font-semibold text-foreground">WEKA Admin</h1>
+            <p className="text-sm text-muted-foreground">Community Banking</p>
           </div>
         </div>
       </div>

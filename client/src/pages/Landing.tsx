@@ -18,8 +18,8 @@ export default function Landing() {
                 <DollarSign className="w-6 h-6 text-primary-foreground" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-foreground">VSLA Management</h1>
-                <p className="text-sm text-muted-foreground">Community Banking System</p>
+                <h1 className="text-xl font-bold text-foreground">WEKA</h1>
+                <p className="text-sm text-muted-foreground">Wealth, Equity, Knowledge, and Accessibility</p>
               </div>
             </div>
             <Button onClick={handleLogin} data-testid="button-login">
@@ -33,11 +33,11 @@ export default function Landing() {
       <section className="py-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-4xl font-bold text-foreground mb-6">
-            Manage Your Village Savings & Loan Association
+            Community Banking System with WEKA
           </h2>
           <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-            A comprehensive platform for managing multiple VSLA groups, tracking savings, 
-            processing loans, and organizing community meetings.
+            Empowering communities through Wealth, Equity, Knowledge, and Accessibility. 
+            Comprehensive platform for managing VSLA groups with role-based access control.
           </p>
           <Button 
             size="lg" 
@@ -55,7 +55,7 @@ export default function Landing() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h3 className="text-3xl font-bold text-foreground mb-4">
-              Everything You Need to Manage VSLAs
+              WEKA Features for Community Banking
             </h3>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
               From member registration to loan processing, our platform handles all aspects of VSLA management.
@@ -122,7 +122,7 @@ export default function Landing() {
               <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
                 <DollarSign className="w-5 h-5 text-primary-foreground" />
               </div>
-              <span className="text-lg font-semibold text-foreground">VSLA Management System</span>
+              <span className="text-lg font-semibold text-foreground">WEKA</span>
             </div>
             <p className="text-muted-foreground">
               Empowering communities through organized savings and lending.

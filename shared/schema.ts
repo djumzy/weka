@@ -26,13 +26,21 @@ export const sessions = pgTable(
   (table) => [index("IDX_session_expire").on(table.expire)],
 );
 
-// User storage table (mandatory for Replit Auth)
+// User storage table for WEKA authentication system
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  email: varchar("email").unique(),
-  firstName: varchar("first_name"),
-  lastName: varchar("last_name"),
+  userId: varchar("user_id", { length: 8 }).unique().notNull(), // TDXXXXXX format
+  firstName: varchar("first_name").notNull(),
+  lastName: varchar("last_name").notNull(),
+  phone: varchar("phone", { length: 20 }).unique().notNull(),
+  email: varchar("email"),
+  pin: varchar("pin", { length: 255 }).notNull(), // Hashed PIN
+  role: varchar("role", { length: 20 }).notNull().default('field_attendant'), // admin, field_monitor, field_attendant
+  isActive: boolean("is_active").notNull().default(true),
+  location: varchar("location"),
+  assignedBy: varchar("assigned_by").references(() => users.id), // Who created this user
   profileImageUrl: varchar("profile_image_url"),
+  lastLogin: timestamp("last_login"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -115,7 +123,12 @@ export const meetings = pgTable("meetings", {
 });
 
 // Relations
-export const usersRelations = relations(users, ({ many }) => ({
+export const usersRelations = relations(users, ({ one, many }) => ({
+  assignedBy: one(users, {
+    fields: [users.assignedBy],
+    references: [users.id],
+  }),
+  assignedUsers: many(users),
   createdGroups: many(groups),
   createdTransactions: many(transactions),
   approvedLoans: many(loans),
@@ -218,9 +231,25 @@ export const insertMeetingSchema = createInsertSchema(meetings).omit({
   updatedAt: true,
 });
 
+// Insert schemas for new user system
+export const insertUserSchema = createInsertSchema(users).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  lastLogin: true,
+});
+
+// Login schema
+export const loginSchema = z.object({
+  phoneOrUserId: z.string().min(1, "Phone number or User ID is required"),
+  pin: z.string().length(6, "PIN must be 6 digits"),
+});
+
 // Types
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
+export type InsertUser = z.infer<typeof insertUserSchema>;
+export type LoginCredentials = z.infer<typeof loginSchema>;
 export type Group = typeof groups.$inferSelect;
 export type InsertGroup = z.infer<typeof insertGroupSchema>;
 export type Member = typeof members.$inferSelect;

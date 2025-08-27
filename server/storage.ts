@@ -7,6 +7,7 @@ import {
   meetings,
   type User,
   type UpsertUser,
+  type InsertUser,
   type Group,
   type InsertGroup,
   type Member,
@@ -22,8 +23,12 @@ import { db } from "./db";
 import { eq, desc, and, count, sum } from "drizzle-orm";
 
 export interface IStorage {
-  // User operations (mandatory for Replit Auth)
+  // User operations
   getUser(id: string): Promise<User | undefined>;
+  getUsers(): Promise<User[]>;
+  getUserByPhoneOrUserId(phoneOrUserId: string): Promise<User | undefined>;
+  createUser(user: InsertUser): Promise<User>;
+  updateUser(id: string, updates: Partial<User>): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
 
   // Group operations
@@ -73,6 +78,36 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
+  async getUserByPhoneOrUserId(phoneOrUserId: string): Promise<User | undefined> {
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(
+        phoneOrUserId.startsWith('TD') 
+          ? eq(users.userId, phoneOrUserId)
+          : eq(users.phone, phoneOrUserId)
+      );
+    return user;
+  }
+
+  async createUser(userData: InsertUser): Promise<User> {
+    const [user] = await db.insert(users).values(userData).returning();
+    return user;
+  }
+
+  async getUsers(): Promise<User[]> {
+    return await db.select().from(users).orderBy(desc(users.createdAt));
+  }
+
+  async updateUser(id: string, updates: Partial<User>): Promise<User | undefined> {
+    const [user] = await db
+      .update(users)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(users.id, id))
+      .returning();
+    return user;
+  }
+
   async upsertUser(userData: UpsertUser): Promise<User> {
     const [user] = await db
       .insert(users)
@@ -114,7 +149,7 @@ export class DatabaseStorage implements IStorage {
 
   async deleteGroup(id: string): Promise<boolean> {
     const result = await db.delete(groups).where(eq(groups.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount ?? 0) > 0;
   }
 
   // Member operations
@@ -139,7 +174,7 @@ export class DatabaseStorage implements IStorage {
     return member;
   }
 
-  async updateMember(id: string, updates: Partial<InsertMember>): Promise<Member | undefined> {
+  async updateMember(id: string, updates: Partial<Member>): Promise<Member | undefined> {
     const [updatedMember] = await db
       .update(members)
       .set({ ...updates, updatedAt: new Date() })
@@ -150,7 +185,7 @@ export class DatabaseStorage implements IStorage {
 
   async deleteMember(id: string): Promise<boolean> {
     const result = await db.delete(members).where(eq(members.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount ?? 0) > 0;
   }
 
   // Transaction operations
@@ -166,24 +201,34 @@ export class DatabaseStorage implements IStorage {
       } else if (transaction.type === 'withdrawal') {
         newBalance -= parseFloat(transaction.amount);
       }
-      await this.updateMember(transaction.memberId, { savingsBalance: newBalance.toString() });
+      await this.updateMember(transaction.memberId, { savingsBalance: newBalance.toFixed(2) });
     }
 
     return newTransaction;
   }
 
   async getTransactions(groupId?: string, memberId?: string): Promise<Transaction[]> {
-    let query = db.select().from(transactions);
-    
     if (groupId && memberId) {
-      query = query.where(and(eq(transactions.groupId, groupId), eq(transactions.memberId, memberId)));
+      return await db
+        .select()
+        .from(transactions)
+        .where(and(eq(transactions.groupId, groupId), eq(transactions.memberId, memberId)))
+        .orderBy(desc(transactions.transactionDate));
     } else if (groupId) {
-      query = query.where(eq(transactions.groupId, groupId));
+      return await db
+        .select()
+        .from(transactions)
+        .where(eq(transactions.groupId, groupId))
+        .orderBy(desc(transactions.transactionDate));
     } else if (memberId) {
-      query = query.where(eq(transactions.memberId, memberId));
+      return await db
+        .select()
+        .from(transactions)
+        .where(eq(transactions.memberId, memberId))
+        .orderBy(desc(transactions.transactionDate));
     }
     
-    return await query.orderBy(desc(transactions.transactionDate));
+    return await db.select().from(transactions).orderBy(desc(transactions.transactionDate));
   }
 
   async getTransaction(id: string): Promise<Transaction | undefined> {
@@ -201,17 +246,27 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getLoans(groupId?: string, memberId?: string): Promise<Loan[]> {
-    let query = db.select().from(loans);
-    
     if (groupId && memberId) {
-      query = query.where(and(eq(loans.groupId, groupId), eq(loans.memberId, memberId)));
+      return await db
+        .select()
+        .from(loans)
+        .where(and(eq(loans.groupId, groupId), eq(loans.memberId, memberId)))
+        .orderBy(desc(loans.applicationDate));
     } else if (groupId) {
-      query = query.where(eq(loans.groupId, groupId));
+      return await db
+        .select()
+        .from(loans)
+        .where(eq(loans.groupId, groupId))
+        .orderBy(desc(loans.applicationDate));
     } else if (memberId) {
-      query = query.where(eq(loans.memberId, memberId));
+      return await db
+        .select()
+        .from(loans)
+        .where(eq(loans.memberId, memberId))
+        .orderBy(desc(loans.applicationDate));
     }
     
-    return await query.orderBy(desc(loans.applicationDate));
+    return await db.select().from(loans).orderBy(desc(loans.applicationDate));
   }
 
   async getLoan(id: string): Promise<Loan | undefined> {

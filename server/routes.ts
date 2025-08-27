@@ -1,29 +1,107 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { setupAuth, isAuthenticated } from "./replitAuth";
+import { setupAuth, isAuthenticated, requireRole } from "./auth";
 import { 
   insertGroupSchema, 
   insertMemberSchema, 
   insertTransactionSchema, 
   insertLoanSchema,
-  insertMeetingSchema 
+  insertMeetingSchema,
+  insertUserSchema 
 } from "@shared/schema";
+import { generateUserId, hashPin } from "./auth";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
-  await setupAuth(app);
+  setupAuth(app);
 
-  // Auth routes
-  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
+  // Initialize system with demo admin user
+  app.post('/api/initialize', async (req, res) => {
     try {
-      const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
-      res.json(user);
+      // Check if any admin users exist
+      const users = await storage.getUsers();
+      const hasAdmin = users.some(user => user.role === 'admin');
+      
+      if (hasAdmin) {
+        return res.status(400).json({ message: 'System already initialized' });
+      }
+      
+      // Create demo admin user
+      const adminUser = {
+        userId: generateUserId(),
+        firstName: 'System',
+        lastName: 'Administrator',
+        phone: '+1234567890',
+        email: 'admin@weka.com',
+        pin: await hashPin('123456'),
+        role: 'admin' as const,
+        isActive: true,
+        location: 'Main Office',
+      };
+      
+      const user = await storage.createUser(adminUser);
+      const { pin, ...safeUser } = user;
+      
+      res.json({ 
+        message: 'System initialized successfully',
+        adminUser: safeUser,
+        credentials: {
+          userId: user.userId,
+          phone: user.phone,
+          pin: '123456' // Only show during initialization
+        }
+      });
     } catch (error) {
-      console.error("Error fetching user:", error);
-      res.status(500).json({ message: "Failed to fetch user" });
+      console.error('Initialization error:', error);
+      res.status(500).json({ message: 'Failed to initialize system' });
+    }
+  });
+
+  // User management routes (Admin only)
+  app.get('/api/users', isAuthenticated, requireRole(['admin']), async (req, res) => {
+    try {
+      const users = await storage.getUsers();
+      // Remove PIN from response for security
+      const safeUsers = users.map((user) => {
+        const { pin, ...safeUser } = user;
+        return safeUser;
+      });
+      res.json(safeUsers);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      res.status(500).json({ message: "Failed to fetch users" });
+    }
+  });
+
+  app.post('/api/users', isAuthenticated, requireRole(['admin']), async (req: any, res) => {
+    try {
+      const userData = insertUserSchema.parse(req.body);
+      
+      // Generate User ID if not provided
+      if (!userData.userId) {
+        userData.userId = generateUserId();
+      }
+      
+      // Hash the PIN
+      userData.pin = await hashPin(userData.pin);
+      
+      // Set assigned by
+      (userData as any).assignedBy = req.userId;
+      
+      const user = await storage.createUser(userData);
+      
+      // Remove PIN from response
+      const { pin, ...safeUser } = user;
+      res.json(safeUser);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid user data", errors: error.errors });
+      } else {
+        console.error("Error creating user:", error);
+        res.status(500).json({ message: "Failed to create user" });
+      }
     }
   });
 
@@ -53,7 +131,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const groupData = insertGroupSchema.parse({
         ...req.body,
-        createdBy: req.user.claims.sub
+        createdBy: req.userId
       });
       const group = await storage.createGroup(groupData);
       res.json(group);
@@ -186,7 +264,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const transactionData = insertTransactionSchema.parse({
         ...req.body,
-        createdBy: req.user.claims.sub
+        createdBy: req.userId
       });
       const transaction = await storage.createTransaction(transactionData);
       res.json(transaction);
@@ -232,7 +310,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const updates = {
         ...req.body,
-        approvedBy: req.user.claims.sub
+        approvedBy: req.userId
       };
       const loan = await storage.updateLoan(req.params.id, updates);
       if (!loan) {
@@ -261,7 +339,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const meetingData = insertMeetingSchema.parse({
         ...req.body,
-        createdBy: req.user.claims.sub
+        createdBy: req.userId
       });
       const meeting = await storage.createMeeting(meetingData);
       res.json(meeting);

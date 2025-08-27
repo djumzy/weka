@@ -5,13 +5,15 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
 import NotFound from "@/pages/not-found";
-import Landing from "@/pages/Landing";
+import Login from "@/pages/Login";
 import Dashboard from "@/pages/Dashboard";
 import Groups from "@/pages/Groups";
 import Members from "@/pages/Members";
 import Transactions from "@/pages/Transactions";
 import Loans from "@/pages/Loans";
+import LoanCalculator from "@/pages/LoanCalculator";
 import Meetings from "@/pages/Meetings";
+import UserManagement from "@/pages/UserManagement";
 import Reports from "@/pages/Reports";
 
 function Router() {
@@ -20,7 +22,7 @@ function Router() {
   return (
     <Switch>
       {isLoading || !isAuthenticated ? (
-        <Route path="/" component={Landing} />
+        <Route path="/" component={Login} />
       ) : (
         <>
           <Route path="/" component={Dashboard} />
@@ -28,7 +30,9 @@ function Router() {
           <Route path="/members" component={Members} />
           <Route path="/transactions" component={Transactions} />
           <Route path="/loans" component={Loans} />
+          <Route path="/loan-calculator" component={LoanCalculator} />
           <Route path="/meetings" component={Meetings} />
+          <Route path="/user-management" component={UserManagement} />
           <Route path="/reports" component={Reports} />
         </>
       )}
