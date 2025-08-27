@@ -80,6 +80,8 @@ export interface IStorage {
     totalSavings: number;
     totalCashInBox: number;
     activeLoans: number;
+    totalLoansGiven: number;
+    totalInterest: number;
   }>;
 
   // Reporting
@@ -379,6 +381,8 @@ export class DatabaseStorage implements IStorage {
     totalSavings: number;
     totalCashInBox: number;
     activeLoans: number;
+    totalLoansGiven: number;
+    totalInterest: number;
   }> {
     const [groupCount] = await db.select({ count: count() }).from(groups).where(eq(groups.isActive, true));
     const [memberCount] = await db.select({ count: count() }).from(members).where(eq(members.isActive, true));
@@ -392,6 +396,8 @@ export class DatabaseStorage implements IStorage {
       .where(eq(groups.isActive, true));
     const [loanCount] = await db.select({ count: count() }).from(loans)
       .where(eq(loans.status, 'active'));
+    const [totalLoansSum] = await db.select({ sum: sum(loans.loanAmount) }).from(loans);
+    const [totalInterestSum] = await db.select({ sum: sum(loans.interestAmount) }).from(loans);
 
     return {
       totalGroups: groupCount.count,
@@ -401,6 +407,8 @@ export class DatabaseStorage implements IStorage {
       totalSavings: parseFloat(savingsSum.sum || '0'),
       totalCashInBox: parseFloat(cashSum.sum || '0'),
       activeLoans: loanCount.count,
+      totalLoansGiven: parseFloat(totalLoansSum.sum || '0'),
+      totalInterest: parseFloat(totalInterestSum.sum || '0'),
     };
   }
 

@@ -107,7 +107,7 @@ export default function Dashboard() {
         {/* Dashboard Content */}
         <div className="p-6 overflow-y-auto h-[calc(100vh-88px)]">
           {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
             <StatsCard
               title="Total Groups"
               value={stats?.totalGroups || 0}
@@ -143,6 +143,22 @@ export default function Dashboard() {
               iconColor="text-emerald-600"
               iconBgColor="bg-emerald-100"
               trend={{ value: formatCurrency(stats?.totalCashInBox || 0), label: "total available" }}
+            />
+            <StatsCard
+              title="Total Loans Given"
+              value={formatCurrency(stats?.totalLoansGiven || 0)}
+              icon={FileText}
+              iconColor="text-orange-600"
+              iconBgColor="bg-orange-100"
+              trend={{ value: `${stats?.activeLoans || 0} active`, label: "active loans", isPositive: true }}
+            />
+            <StatsCard
+              title="Total Interest"
+              value={formatCurrency(stats?.totalInterest || 0)}
+              icon={UserCheck}
+              iconColor="text-purple-600"
+              iconBgColor="bg-purple-100"
+              trend={{ value: formatCurrency(stats?.totalInterest || 0), label: "earned" }}
             />
           </div>
 
