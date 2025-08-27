@@ -5,6 +5,7 @@ import {
   transactions,
   loans,
   meetings,
+  cashbox,
   type User,
   type UpsertUser,
   type InsertUser,
@@ -18,9 +19,11 @@ import {
   type InsertLoan,
   type Meeting,
   type InsertMeeting,
+  type Cashbox,
+  type InsertCashbox,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, count, sum } from "drizzle-orm";
+import { eq, desc, and, count, sum, gte, lte } from "drizzle-orm";
 
 export interface IStorage {
   // User operations
@@ -62,13 +65,26 @@ export interface IStorage {
   getMeeting(id: string): Promise<Meeting | undefined>;
   updateMeeting(id: string, updates: Partial<InsertMeeting>): Promise<Meeting | undefined>;
 
+  // Cashbox operations
+  createCashboxEntry(entry: InsertCashbox): Promise<Cashbox>;
+  getCashboxBalance(groupId: string): Promise<number>;
+  getCashboxEntries(groupId: string): Promise<Cashbox[]>;
+
   // Dashboard statistics
   getDashboardStats(): Promise<{
     totalGroups: number;
     totalMembers: number;
+    maleMembers: number;
+    femaleMembers: number;
     totalSavings: number;
+    totalCashInBox: number;
     activeLoans: number;
   }>;
+
+  // Reporting
+  getGroupReport(groupId?: string, location?: string, dateFrom?: Date, dateTo?: Date): Promise<any[]>;
+  getMemberReport(groupId?: string, gender?: string, dateFrom?: Date, dateTo?: Date): Promise<any[]>;
+  getFinancialReport(groupId?: string, dateFrom?: Date, dateTo?: Date): Promise<any[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -314,24 +330,131 @@ export class DatabaseStorage implements IStorage {
     return updatedMeeting;
   }
 
+  // Cashbox operations
+  async createCashboxEntry(entry: InsertCashbox): Promise<Cashbox> {
+    const [newEntry] = await db.insert(cashbox).values(entry).returning();
+    
+    // Update group's available cash
+    const balance = await this.getCashboxBalance(entry.groupId);
+    await this.updateGroup(entry.groupId, { availableCash: balance.toString() });
+    
+    return newEntry;
+  }
+
+  async getCashboxBalance(groupId: string): Promise<number> {
+    const entries = await db.select().from(cashbox).where(eq(cashbox.groupId, groupId));
+    return entries.reduce((balance, entry) => {
+      const amount = parseFloat(entry.amount);
+      return entry.transactionType === 'deposit' ? balance + amount : balance - amount;
+    }, 0);
+  }
+
+  async getCashboxEntries(groupId: string): Promise<Cashbox[]> {
+    return await db.select().from(cashbox)
+      .where(eq(cashbox.groupId, groupId))
+      .orderBy(desc(cashbox.recordedAt));
+  }
+
   // Dashboard statistics
   async getDashboardStats(): Promise<{
     totalGroups: number;
     totalMembers: number;
+    maleMembers: number;
+    femaleMembers: number;
     totalSavings: number;
+    totalCashInBox: number;
     activeLoans: number;
   }> {
     const [groupCount] = await db.select({ count: count() }).from(groups).where(eq(groups.isActive, true));
     const [memberCount] = await db.select({ count: count() }).from(members).where(eq(members.isActive, true));
-    const [savingsSum] = await db.select({ sum: sum(members.savingsBalance) }).from(members).where(eq(members.isActive, true));
-    const [loanCount] = await db.select({ count: count() }).from(loans).where(eq(loans.status, 'active'));
+    const [maleCount] = await db.select({ count: count() }).from(members)
+      .where(and(eq(members.isActive, true), eq(members.gender, 'M')));
+    const [femaleCount] = await db.select({ count: count() }).from(members)
+      .where(and(eq(members.isActive, true), eq(members.gender, 'F')));
+    const [savingsSum] = await db.select({ sum: sum(members.savingsBalance) }).from(members)
+      .where(eq(members.isActive, true));
+    const [cashSum] = await db.select({ sum: sum(groups.availableCash) }).from(groups)
+      .where(eq(groups.isActive, true));
+    const [loanCount] = await db.select({ count: count() }).from(loans)
+      .where(eq(loans.status, 'active'));
 
     return {
       totalGroups: groupCount.count,
       totalMembers: memberCount.count,
+      maleMembers: maleCount.count,
+      femaleMembers: femaleCount.count,
       totalSavings: parseFloat(savingsSum.sum || '0'),
+      totalCashInBox: parseFloat(cashSum.sum || '0'),
       activeLoans: loanCount.count,
     };
+  }
+
+  // Reporting methods
+  async getGroupReport(groupId?: string, location?: string, dateFrom?: Date, dateTo?: Date): Promise<any[]> {
+    let query = db.select({
+      id: groups.id,
+      name: groups.name,
+      location: groups.location,
+      registrationNumber: groups.registrationNumber,
+      memberCount: count(members.id),
+      totalSavings: sum(members.savingsBalance),
+      availableCash: groups.availableCash,
+      cycleMonths: groups.cycleMonths,
+      interestRate: groups.interestRate,
+      registrationDate: groups.registrationDate,
+    }).from(groups)
+      .leftJoin(members, eq(groups.id, members.groupId))
+      .where(eq(groups.isActive, true))
+      .groupBy(groups.id);
+
+    if (groupId) query = query.where(eq(groups.id, groupId));
+    if (location) query = query.where(eq(groups.location, location));
+    if (dateFrom) query = query.where(gte(groups.registrationDate, dateFrom.toISOString().split('T')[0]));
+    if (dateTo) query = query.where(lte(groups.registrationDate, dateTo.toISOString().split('T')[0]));
+
+    return await query;
+  }
+
+  async getMemberReport(groupId?: string, gender?: string, dateFrom?: Date, dateTo?: Date): Promise<any[]> {
+    let query = db.select({
+      id: members.id,
+      firstName: members.firstName,
+      lastName: members.lastName,
+      gender: members.gender,
+      phone: members.phone,
+      groupName: groups.name,
+      groupLocation: groups.location,
+      savingsBalance: members.savingsBalance,
+      joinDate: members.joinDate,
+      isActive: members.isActive,
+    }).from(members)
+      .leftJoin(groups, eq(members.groupId, groups.id))
+      .where(eq(members.isActive, true));
+
+    if (groupId) query = query.where(eq(members.groupId, groupId));
+    if (gender) query = query.where(eq(members.gender, gender));
+    if (dateFrom) query = query.where(gte(members.joinDate, dateFrom.toISOString().split('T')[0]));
+    if (dateTo) query = query.where(lte(members.joinDate, dateTo.toISOString().split('T')[0]));
+
+    return await query;
+  }
+
+  async getFinancialReport(groupId?: string, dateFrom?: Date, dateTo?: Date): Promise<any[]> {
+    let query = db.select({
+      groupId: transactions.groupId,
+      groupName: groups.name,
+      transactionType: transactions.type,
+      totalAmount: sum(transactions.amount),
+      transactionCount: count(transactions.id),
+    }).from(transactions)
+      .leftJoin(groups, eq(transactions.groupId, groups.id))
+      .groupBy(transactions.groupId, groups.name, transactions.type);
+
+    if (groupId) query = query.where(eq(transactions.groupId, groupId));
+    if (dateFrom) query = query.where(gte(transactions.transactionDate, dateFrom));
+    if (dateTo) query = query.where(lte(transactions.transactionDate, dateTo));
+
+    return await query;
   }
 }
 

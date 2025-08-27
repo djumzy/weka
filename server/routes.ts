@@ -8,7 +8,8 @@ import {
   insertTransactionSchema, 
   insertLoanSchema,
   insertMeetingSchema,
-  insertUserSchema 
+  insertUserSchema,
+  insertCashboxSchema
 } from "@shared/schema";
 import { generateUserId, hashPin } from "./auth";
 import { z } from "zod";
@@ -368,6 +369,90 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.error("Error updating meeting:", error);
         res.status(500).json({ message: "Failed to update meeting" });
       }
+    }
+  });
+
+  // Reporting endpoints
+  app.get("/api/reports/:type", isAuthenticated, async (req, res) => {
+    try {
+      const { type } = req.params;
+      const { groupId, location, gender, dateFrom, dateTo } = req.query;
+      
+      let reportData = [];
+      
+      switch (type) {
+        case 'groups':
+          reportData = await storage.getGroupReport(
+            groupId !== 'all' ? groupId as string : undefined,
+            location as string || undefined,
+            dateFrom ? new Date(dateFrom as string) : undefined,
+            dateTo ? new Date(dateTo as string) : undefined
+          );
+          break;
+        case 'members':
+          reportData = await storage.getMemberReport(
+            groupId !== 'all' ? groupId as string : undefined,
+            gender !== 'all' ? gender as string : undefined,
+            dateFrom ? new Date(dateFrom as string) : undefined,
+            dateTo ? new Date(dateTo as string) : undefined
+          );
+          break;
+        case 'financial':
+          reportData = await storage.getFinancialReport(
+            groupId !== 'all' ? groupId as string : undefined,
+            dateFrom ? new Date(dateFrom as string) : undefined,
+            dateTo ? new Date(dateTo as string) : undefined
+          );
+          break;
+        default:
+          return res.status(400).json({ error: "Invalid report type" });
+      }
+      
+      res.json(reportData);
+    } catch (error) {
+      console.error("Error fetching report data:", error);
+      res.status(500).json({ error: "Failed to fetch report data" });
+    }
+  });
+
+  // Cashbox endpoints
+  app.post("/api/cashbox", isAuthenticated, async (req: any, res) => {
+    try {
+      const validatedData = insertCashboxSchema.parse({
+        ...req.body,
+        recordedBy: req.userId
+      });
+      const entry = await storage.createCashboxEntry(validatedData);
+      res.status(201).json(entry);
+    } catch (error) {
+      console.error("Error creating cashbox entry:", error);
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: "Invalid data", details: error.errors });
+      } else {
+        res.status(500).json({ error: "Failed to create cashbox entry" });
+      }
+    }
+  });
+
+  app.get("/api/cashbox/:groupId", isAuthenticated, async (req, res) => {
+    try {
+      const { groupId } = req.params;
+      const entries = await storage.getCashboxEntries(groupId);
+      res.json(entries);
+    } catch (error) {
+      console.error("Error fetching cashbox entries:", error);
+      res.status(500).json({ error: "Failed to fetch cashbox entries" });
+    }
+  });
+
+  app.get("/api/cashbox/:groupId/balance", isAuthenticated, async (req, res) => {
+    try {
+      const { groupId } = req.params;
+      const balance = await storage.getCashboxBalance(groupId);
+      res.json({ balance });
+    } catch (error) {
+      console.error("Error fetching cashbox balance:", error);
+      res.status(500).json({ error: "Failed to fetch cashbox balance" });
     }
   });
 

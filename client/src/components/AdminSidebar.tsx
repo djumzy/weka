@@ -39,9 +39,11 @@ export function AdminSidebar() {
       {/* Header */}
       <div className="p-6 border-b border-border">
         <div className="flex items-center space-x-3" data-testid="sidebar-header">
-          <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-            <DollarSign className="w-6 h-6 text-primary-foreground" />
-          </div>
+          <img 
+            src="/attached_assets/WEKA_1756289094166.png" 
+            alt="WEKA Logo" 
+            className="w-10 h-10 object-contain"
+          />
           <div>
             <h1 className="text-lg font-semibold text-foreground">WEKA Admin</h1>
             <p className="text-sm text-muted-foreground">Community Banking</p>
@@ -57,8 +59,8 @@ export function AdminSidebar() {
           
           return (
             <Link key={item.href} href={item.href}>
-              <a
-                className={`flex items-center space-x-3 px-3 py-2 rounded-md font-medium transition-colors ${
+              <div
+                className={`flex items-center space-x-3 px-3 py-2 rounded-md font-medium transition-colors cursor-pointer ${
                   isActive
                     ? "bg-primary text-primary-foreground"
                     : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
@@ -67,7 +69,7 @@ export function AdminSidebar() {
               >
                 <Icon className="w-5 h-5" />
                 <span>{item.label}</span>
-              </a>
+              </div>
             </Link>
           );
         })}

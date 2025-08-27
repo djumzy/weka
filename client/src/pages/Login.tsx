@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { DollarSign, Camera, Phone, KeyRound } from "lucide-react";
+import { Camera, Phone, KeyRound } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 
@@ -71,9 +71,11 @@ export default function Login() {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
-            <div className="w-16 h-16 bg-primary rounded-xl flex items-center justify-center">
-              <DollarSign className="w-8 h-8 text-primary-foreground" />
-            </div>
+            <img 
+              src="/attached_assets/WEKA_1756289094166.png" 
+              alt="WEKA Logo" 
+              className="w-24 h-24 object-contain"
+            />
           </div>
           <CardTitle className="text-2xl font-bold">WEKA</CardTitle>
           <p className="text-muted-foreground">

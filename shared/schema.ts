@@ -45,25 +45,39 @@ export const users = pgTable("users", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-// VSLA Groups
+// WEKA Groups with enhanced features
 export const groups = pgTable("groups", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: varchar("name", { length: 255 }).notNull(),
   description: text("description"),
-  meetingFrequency: varchar("meeting_frequency", { length: 20 }).notNull().default('monthly'), // weekly, bi-weekly, monthly
+  location: varchar("location", { length: 255 }).notNull(),
+  registrationNumber: varchar("registration_number", { length: 100 }),
+  meetingFrequency: varchar("meeting_frequency", { length: 20 }).notNull().default('monthly'),
   maxMembers: integer("max_members").notNull().default(30),
+  savingPerShare: decimal("saving_per_share", { precision: 12, scale: 2 }).notNull().default('0.00'),
+  cycleMonths: integer("cycle_months").notNull().default(12), // Number of months per cycle
+  interestRate: decimal("interest_rate", { precision: 5, scale: 2 }).notNull().default('2.00'), // Group's loan interest rate
+  mainActivity: text("main_activity"),
+  otherActivities: text("other_activities"),
+  registrationDate: date("registration_date").notNull(),
+  hasRunningBusiness: boolean("has_running_business").notNull().default(false),
+  businessName: varchar("business_name", { length: 255 }),
+  businessLocation: varchar("business_location", { length: 255 }),
+  currentInput: text("current_input"), // Funds, manpower, services etc
+  availableCash: decimal("available_cash", { precision: 12, scale: 2 }).notNull().default('0.00'),
   isActive: boolean("is_active").notNull().default(true),
   createdBy: varchar("created_by").notNull().references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-// Group Members
+// Group Members with gender tracking
 export const members = pgTable("members", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   groupId: varchar("group_id").notNull().references(() => groups.id),
   firstName: varchar("first_name", { length: 100 }).notNull(),
   lastName: varchar("last_name", { length: 100 }).notNull(),
+  gender: varchar("gender", { length: 10 }).notNull(), // M or F
   email: varchar("email", { length: 255 }),
   phone: varchar("phone", { length: 20 }),
   address: text("address"),
@@ -122,6 +136,17 @@ export const meetings = pgTable("meetings", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Cash box tracking
+export const cashbox = pgTable("cashbox", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  groupId: varchar("group_id").notNull().references(() => groups.id),
+  amount: decimal("amount", { precision: 12, scale: 2 }).notNull(),
+  transactionType: varchar("transaction_type", { length: 20 }).notNull(), // deposit, withdrawal
+  description: text("description"),
+  recordedBy: varchar("recorded_by").notNull().references(() => users.id),
+  recordedAt: timestamp("recorded_at").notNull().defaultNow(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ one, many }) => ({
   assignedBy: one(users, {
@@ -144,6 +169,18 @@ export const groupsRelations = relations(groups, ({ one, many }) => ({
   transactions: many(transactions),
   loans: many(loans),
   meetings: many(meetings),
+  cashboxEntries: many(cashbox),
+}));
+
+export const cashboxRelations = relations(cashbox, ({ one }) => ({
+  group: one(groups, {
+    fields: [cashbox.groupId],
+    references: [groups.id],
+  }),
+  recordedBy: one(users, {
+    fields: [cashbox.recordedBy],
+    references: [users.id],
+  }),
 }));
 
 export const membersRelations = relations(members, ({ one, many }) => ({
@@ -201,6 +238,12 @@ export const insertGroupSchema = createInsertSchema(groups).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
+  availableCash: true,
+});
+
+export const insertCashboxSchema = createInsertSchema(cashbox).omit({
+  id: true,
+  recordedAt: true,
 });
 
 export const insertMemberSchema = createInsertSchema(members).omit({
@@ -260,3 +303,5 @@ export type Loan = typeof loans.$inferSelect;
 export type InsertLoan = z.infer<typeof insertLoanSchema>;
 export type Meeting = typeof meetings.$inferSelect;
 export type InsertMeeting = z.infer<typeof insertMeetingSchema>;
+export type Cashbox = typeof cashbox.$inferSelect;
+export type InsertCashbox = z.infer<typeof insertCashboxSchema>;

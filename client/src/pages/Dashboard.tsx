@@ -9,7 +9,8 @@ import { QuickActionButton } from "@/components/QuickActionButton";
 import { NewGroupModal } from "@/components/modals/NewGroupModal";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Users, User, DollarSign, FileText, Calendar, Plus } from "lucide-react";
+import { formatCurrency } from "@/utils/currency";
+import { Users, User, DollarSign, FileText, Calendar, Plus, Wallet, UserCheck, UserX } from "lucide-react";
 
 export default function Dashboard() {
   const [selectedGroupId, setSelectedGroupId] = useState<string>("all");
@@ -75,7 +76,7 @@ export default function Dashboard() {
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-2xl font-bold text-foreground" data-testid="page-title">Dashboard</h2>
-              <p className="text-muted-foreground">Welcome back! Here's an overview of your VSLA groups.</p>
+              <p className="text-muted-foreground">Welcome back! Here's an overview of your WEKA groups.</p>
             </div>
             <div className="flex items-center space-x-4">
               <Select value={selectedGroupId} onValueChange={setSelectedGroupId}>
@@ -121,23 +122,27 @@ export default function Dashboard() {
               icon={User}
               iconColor="text-green-600"
               iconBgColor="bg-green-100"
-              trend={{ value: "+18", label: "this month", isPositive: true }}
+              trend={{ 
+                value: `M: ${stats?.maleMembers || 0} | F: ${stats?.femaleMembers || 0}`, 
+                label: "gender breakdown", 
+                isPositive: true 
+              }}
             />
             <StatsCard
               title="Total Savings"
-              value={`$${(stats?.totalSavings || 0).toFixed(2)}`}
+              value={formatCurrency(stats?.totalSavings || 0)}
               icon={DollarSign}
               iconColor="text-blue-600"
               iconBgColor="bg-blue-100"
               trend={{ value: "+12.5%", label: "vs last month", isPositive: true }}
             />
             <StatsCard
-              title="Active Loans"
-              value={stats?.activeLoans || 0}
-              icon={FileText}
-              iconColor="text-amber-600"
-              iconBgColor="bg-amber-100"
-              trend={{ value: "$8,450", label: "outstanding" }}
+              title="Available Cash in Box"
+              value={formatCurrency(stats?.totalCashInBox || 0)}
+              icon={Wallet}
+              iconColor="text-emerald-600"
+              iconBgColor="bg-emerald-100"
+              trend={{ value: formatCurrency(stats?.totalCashInBox || 0), label: "total available" }}
             />
           </div>
 
