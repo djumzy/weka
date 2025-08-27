@@ -29,6 +29,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 
 interface NewGroupModalProps {
   open: boolean;
@@ -44,8 +45,19 @@ export function NewGroupModal({ open, onOpenChange }: NewGroupModalProps) {
     defaultValues: {
       name: "",
       description: "",
+      location: "",
+      registrationNumber: "",
       meetingFrequency: "monthly",
       maxMembers: 30,
+      cycleMonths: 12,
+      savingPerShare: "0",
+      mainActivity: "",
+      otherActivities: "",
+      registrationDate: new Date().toISOString().split('T')[0],
+      hasRunningBusiness: false,
+      businessName: "",
+      businessLocation: "",
+      currentInput: "",
       isActive: true,
     },
   });
@@ -80,69 +92,175 @@ export function NewGroupModal({ open, onOpenChange }: NewGroupModalProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md" data-testid="new-group-modal">
+      <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto" data-testid="new-group-modal">
         <DialogHeader>
           <DialogTitle>Create New Group</DialogTitle>
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Group Name</FormLabel>
-                  <FormControl>
-                    <Input
-                      {...field}
-                      placeholder="Enter group name"
-                      data-testid="input-group-name"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            {/* Basic Information */}
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="registrationDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Date</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="date"
+                          {...field}
+                          data-testid="input-registration-date"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
 
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Description</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      {...field}
-                      placeholder="Brief description of the group"
-                      rows={3}
-                      data-testid="input-group-description"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
-                name="meetingFrequency"
+                name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Meeting Frequency</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormLabel>Name of The Group</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        placeholder="......................................................................"
+                        data-testid="input-group-name"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="location"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Location</FormLabel>
                       <FormControl>
-                        <SelectTrigger data-testid="select-meeting-frequency">
-                          <SelectValue placeholder="Select frequency" />
-                        </SelectTrigger>
+                        <Input
+                          {...field}
+                          placeholder="Enter location"
+                          data-testid="input-location"
+                        />
                       </FormControl>
-                      <SelectContent>
-                        <SelectItem value="weekly">Weekly</SelectItem>
-                        <SelectItem value="bi-weekly">Bi-weekly</SelectItem>
-                        <SelectItem value="monthly">Monthly</SelectItem>
-                      </SelectContent>
-                    </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="registrationNumber"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Registration Number</FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          placeholder="Enter registration number"
+                          data-testid="input-registration-number"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
+                <FormField
+                  control={form.control}
+                  name="maxMembers"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Number of Members</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min="5"
+                          max="50"
+                          {...field}
+                          onChange={(e) => field.onChange(parseInt(e.target.value))}
+                          data-testid="input-max-members"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="cycleMonths"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Number of Months per Cycle</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min="6"
+                          max="24"
+                          {...field}
+                          onChange={(e) => field.onChange(parseInt(e.target.value))}
+                          data-testid="input-cycle-months"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="savingPerShare"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Current Saving (if available)</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          {...field}
+                          placeholder="0.00"
+                          data-testid="input-current-saving"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Activities */}
+            <div className="space-y-4">
+              <FormField
+                control={form.control}
+                name="mainActivity"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>What is your Main Activity as a Group</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        {...field}
+                        placeholder="Describe the main activity of the group"
+                        rows={3}
+                        data-testid="input-main-activity"
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -150,18 +268,16 @@ export function NewGroupModal({ open, onOpenChange }: NewGroupModalProps) {
 
               <FormField
                 control={form.control}
-                name="maxMembers"
+                name="otherActivities"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Max Members</FormLabel>
+                    <FormLabel>Other Activities (if there are any)</FormLabel>
                     <FormControl>
-                      <Input
-                        type="number"
-                        min="5"
-                        max="50"
+                      <Textarea
                         {...field}
-                        onChange={(e) => field.onChange(parseInt(e.target.value))}
-                        data-testid="input-max-members"
+                        placeholder="Describe other activities if any"
+                        rows={3}
+                        data-testid="input-other-activities"
                       />
                     </FormControl>
                     <FormMessage />
@@ -170,7 +286,93 @@ export function NewGroupModal({ open, onOpenChange }: NewGroupModalProps) {
               />
             </div>
 
-            <div className="flex space-x-3 pt-4">
+            <Separator />
+
+            {/* Business Information */}
+            <div className="space-y-4">
+              <FormField
+                control={form.control}
+                name="hasRunningBusiness"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Do the group have a running business (Business Group)?</FormLabel>
+                    <Select onValueChange={(value) => field.onChange(value === "true")} value={field.value?.toString()}>
+                      <FormControl>
+                        <SelectTrigger data-testid="select-has-business">
+                          <SelectValue placeholder="Select an option" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="true">Yes</SelectItem>
+                        <SelectItem value="false">No</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {form.watch("hasRunningBusiness") && (
+                <div className="space-y-4 pl-4 border-l-2 border-gray-200">
+                  <FormField
+                    control={form.control}
+                    name="businessName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Name of the Business</FormLabel>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            placeholder="Enter business name"
+                            data-testid="input-business-name"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="businessLocation"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Its Location</FormLabel>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            placeholder="Enter business location"
+                            data-testid="input-business-location"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="currentInput"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Current Input (funds, manpower, services, etc.)</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            {...field}
+                            placeholder="Describe current input in terms of funds, manpower, services, etc."
+                            rows={3}
+                            data-testid="input-current-input"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              )}
+            </div>
+
+            <div className="flex space-x-3 pt-6">
               <Button
                 type="button"
                 variant="outline"
