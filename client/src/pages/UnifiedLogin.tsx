@@ -7,13 +7,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Users, UserCog, Scan } from "lucide-react";
+import { Users, UserCog, Camera } from "lucide-react";
 
 interface LoginFormData {
   userType: 'member' | 'staff';
   phone?: string;
-  pin: string;
+  pin?: string;
   userId?: string;
+  password?: string;
   barcode?: string;
 }
 
@@ -29,8 +30,8 @@ export default function UnifiedLogin() {
   // Staff login form
   const [staffUserId, setStaffUserId] = useState("");
   const [staffPhone, setStaffPhone] = useState("");
-  const [staffPin, setStaffPin] = useState("");
-  const [staffBarcode, setStaffBarcode] = useState("");
+  const [staffPassword, setStaffPassword] = useState("");
+  const [isScanning, setIsScanning] = useState(false);
 
   const loginMutation = useMutation({
     mutationFn: async (formData: LoginFormData) => {
@@ -112,19 +113,12 @@ export default function UnifiedLogin() {
 
   const handleStaffLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!staffUserId || !staffPhone || !staffPin) {
+    
+    // Check if at least one identifier (userId or phone) and password are provided
+    if ((!staffUserId && !staffPhone) || !staffPassword) {
       toast({
         title: "Missing information",
-        description: "Please enter User ID, phone number, and PIN",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    if (staffPin.length !== 6) {
-      toast({
-        title: "Invalid PIN",
-        description: "Staff PIN must be 6 digits",
+        description: "Please enter either User ID or phone number, plus password",
         variant: "destructive",
       });
       return;
@@ -132,11 +126,20 @@ export default function UnifiedLogin() {
     
     loginMutation.mutate({
       userType: 'staff',
-      userId: staffUserId,
-      phone: staffPhone,
-      pin: staffPin,
-      barcode: staffBarcode || undefined,
+      userId: staffUserId || undefined,
+      phone: staffPhone || undefined,
+      password: staffPassword,
     });
+  };
+
+  const handleBarcodeScan = () => {
+    setIsScanning(true);
+    // TODO: Implement barcode scanning functionality
+    toast({
+      title: "Camera opening",
+      description: "Barcode scanning will be implemented",
+    });
+    setTimeout(() => setIsScanning(false), 2000);
   };
 
   return (
@@ -216,7 +219,7 @@ export default function UnifiedLogin() {
               <TabsContent value="staff" className="mt-6">
                 <form onSubmit={handleStaffLogin} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="staff-userid">User ID (TD******)</Label>
+                    <Label htmlFor="staff-userid">User ID (Optional)</Label>
                     <Input
                       id="staff-userid"
                       type="text"
@@ -224,12 +227,11 @@ export default function UnifiedLogin() {
                       value={staffUserId}
                       onChange={(e) => setStaffUserId(e.target.value.toUpperCase())}
                       data-testid="input-staff-userid"
-                      required
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="staff-phone">Phone Number</Label>
+                    <Label htmlFor="staff-phone">Phone Number (Optional if User ID provided)</Label>
                     <Input
                       id="staff-phone"
                       type="tel"
@@ -237,40 +239,35 @@ export default function UnifiedLogin() {
                       value={staffPhone}
                       onChange={(e) => setStaffPhone(e.target.value)}
                       data-testid="input-staff-phone"
-                      required
                     />
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="staff-pin">PIN (6 digits)</Label>
+                    <Label htmlFor="staff-password">Password</Label>
                     <Input
-                      id="staff-pin"
+                      id="staff-password"
                       type="password"
-                      placeholder="******"
-                      maxLength={6}
-                      value={staffPin}
-                      onChange={(e) => setStaffPin(e.target.value.replace(/\D/g, ''))}
-                      data-testid="input-staff-pin"
+                      placeholder="Enter your password"
+                      value={staffPassword}
+                      onChange={(e) => setStaffPassword(e.target.value)}
+                      data-testid="input-staff-password"
                       required
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="staff-barcode">
-                      Barcode (Optional)
-                      <span className="text-muted-foreground text-xs ml-1">- Scan your card</span>
-                    </Label>
-                    <div className="relative">
-                      <Input
-                        id="staff-barcode"
-                        type="text"
-                        placeholder="Scan barcode or leave empty"
-                        value={staffBarcode}
-                        onChange={(e) => setStaffBarcode(e.target.value)}
-                        data-testid="input-staff-barcode"
-                      />
-                      <Scan className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    </div>
+                    <Label>Barcode Scanner</Label>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full"
+                      onClick={handleBarcodeScan}
+                      disabled={isScanning}
+                      data-testid="button-barcode-scan"
+                    >
+                      <Camera className="h-4 w-4 mr-2" />
+                      {isScanning ? "Opening Camera..." : "Scan ID Card"}
+                    </Button>
                   </div>
 
                   <Button
@@ -287,12 +284,6 @@ export default function UnifiedLogin() {
           </CardContent>
         </Card>
 
-        {/* Help Text */}
-        <div className="text-center text-sm text-muted-foreground space-y-1">
-          <p><strong>Members:</strong> Use phone number + 4-digit PIN</p>
-          <p><strong>Staff:</strong> Use User ID + phone number + 6-digit PIN</p>
-          <p><strong>Barcode:</strong> Optional for staff with ID cards</p>
-        </div>
       </div>
     </div>
   );
