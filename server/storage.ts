@@ -372,6 +372,73 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(cashbox.recordedAt));
   }
 
+  // Group-specific statistics for members
+  async getGroupStats(groupId: string): Promise<{
+    totalMembers: number;
+    totalSavings: number;
+    totalWelfare: number;
+    totalShares: number;
+    shareValue: number;
+    totalCashInBox: number;
+    totalLoansOutstanding: number;
+    groupWelfareAmount: number;
+    interestRate: number;
+  }> {
+    const group = await this.getGroup(groupId);
+    if (!group) throw new Error('Group not found');
+
+    const [memberCount] = await db.select({ count: count() }).from(members)
+      .where(and(eq(members.groupId, groupId), eq(members.isActive, true)));
+    
+    const [savingsSum] = await db.select({ sum: sum(members.savingsBalance) }).from(members)
+      .where(and(eq(members.groupId, groupId), eq(members.isActive, true)));
+    
+    const [welfareSum] = await db.select({ sum: sum(members.welfareBalance) }).from(members)
+      .where(and(eq(members.groupId, groupId), eq(members.isActive, true)));
+    
+    const [sharesSum] = await db.select({ sum: sum(members.totalShares) }).from(members)
+      .where(and(eq(members.groupId, groupId), eq(members.isActive, true)));
+    
+    const [loansSum] = await db.select({ sum: sum(members.currentLoan) }).from(members)
+      .where(and(eq(members.groupId, groupId), eq(members.isActive, true)));
+
+    const totalSavings = parseFloat(savingsSum.sum || '0');
+    const totalLoansOutstanding = parseFloat(loansSum.sum || '0');
+    const shareValue = parseFloat(group.savingPerShare || '0');
+    
+    return {
+      totalMembers: memberCount.count,
+      totalSavings,
+      totalWelfare: parseFloat(welfareSum.sum || '0'),
+      totalShares: parseInt(sharesSum.sum || '0'),
+      shareValue,
+      totalCashInBox: totalSavings - totalLoansOutstanding,
+      totalLoansOutstanding,
+      groupWelfareAmount: parseFloat(group.welfareAmount || '0'),
+      interestRate: parseFloat(group.interestRate || '0'),
+    };
+  }
+
+  // Update member shares and recalculate savings
+  async updateMemberShares(memberId: string, newShares: number): Promise<void> {
+    const member = await this.getMember(memberId);
+    if (!member) throw new Error('Member not found');
+    
+    const group = await this.getGroup(member.groupId);
+    if (!group) throw new Error('Group not found');
+    
+    const shareValue = parseFloat(group.savingPerShare || '0');
+    const newSavingsBalance = (newShares * shareValue).toString();
+    
+    await db.update(members)
+      .set({ 
+        totalShares: newShares,
+        savingsBalance: newSavingsBalance,
+        updatedAt: new Date()
+      })
+      .where(eq(members.id, memberId));
+  }
+
   // Dashboard statistics
   async getDashboardStats(): Promise<{
     totalGroups: number;

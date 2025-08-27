@@ -117,6 +117,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Group-specific statistics for members
+  app.get('/api/groups/:id/stats', isAuthenticated, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const stats = await storage.getGroupStats(id);
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching group stats:", error);
+      res.status(500).json({ message: "Failed to fetch group stats" });
+    }
+  });
+
+  // Update member shares
+  app.patch('/api/members/:id/shares', isAuthenticated, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { shares } = req.body;
+      
+      if (typeof shares !== 'number' || shares < 0) {
+        return res.status(400).json({ message: "Invalid shares value" });
+      }
+      
+      await storage.updateMemberShares(id, shares);
+      const updatedMember = await storage.getMember(id);
+      res.json(updatedMember);
+    } catch (error) {
+      console.error("Error updating member shares:", error);
+      res.status(500).json({ message: "Failed to update member shares" });
+    }
+  });
+
   // Group routes
   app.get('/api/groups', isAuthenticated, async (req, res) => {
     try {

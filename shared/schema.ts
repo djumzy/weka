@@ -85,7 +85,8 @@ export const members = pgTable("members", {
   address: text("address"),
   joinDate: date("join_date").notNull(),
   isActive: boolean("is_active").notNull().default(true),
-  savingsBalance: decimal("savings_balance", { precision: 12, scale: 2 }).notNull().default('0.00'),
+  totalShares: integer("total_shares").notNull().default(0), // Number of shares owned
+  savingsBalance: decimal("savings_balance", { precision: 12, scale: 2 }).notNull().default('0.00'), // Calculated from shares × share value
   welfareBalance: decimal("welfare_balance", { precision: 12, scale: 2 }).notNull().default('0.00'),
   nextOfKin: varchar("next_of_kin", { length: 255 }),
   pin: varchar("pin", { length: 4 }).notNull(),
@@ -140,6 +141,19 @@ export const meetings = pgTable("meetings", {
   createdBy: varchar("created_by").notNull().references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Meeting Attendance with payments
+export const meetingAttendance = pgTable("meeting_attendance", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  meetingId: varchar("meeting_id").notNull().references(() => meetings.id),
+  memberId: varchar("member_id").notNull().references(() => members.id),
+  isPresent: boolean("is_present").notNull().default(false),
+  sharesPurchased: integer("shares_purchased").notNull().default(0), // Shares bought this meeting
+  welfarePayment: decimal("welfare_payment", { precision: 12, scale: 2 }).notNull().default('0.00'),
+  loanPayment: decimal("loan_payment", { precision: 12, scale: 2 }).notNull().default('0.00'),
+  notes: text("notes"),
+  recordedAt: timestamp("recorded_at").notNull().defaultNow(),
 });
 
 // Cash box tracking

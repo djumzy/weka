@@ -45,6 +45,17 @@ export default function GroupDetails() {
     enabled: !!groupId,
   });
 
+  // Fetch group-specific statistics
+  const { data: groupStats } = useQuery({
+    queryKey: ["/api/groups", groupId, "stats"],
+    queryFn: async () => {
+      const response = await fetch(`/api/groups/${groupId}/stats`);
+      if (!response.ok) throw new Error('Failed to fetch group stats');
+      return response.json();
+    },
+    enabled: !!groupId,
+  });
+
   // Check if user can edit (admin, field_monitor, field_attendant)
   const canEdit = user?.role === 'admin' || user?.role === 'field_monitor' || user?.role === 'field_attendant';
 
@@ -64,13 +75,14 @@ export default function GroupDetails() {
     );
   }
 
-  const totalSavings = members.reduce((sum: number, member: any) => 
-    sum + parseFloat(member.savingsBalance || 0), 0
-  );
-
-  const totalLoans = members.reduce((sum: number, member: any) => 
-    sum + parseFloat(member.currentLoan || 0), 0
-  );
+  // Use group stats for accurate calculations
+  const totalSavings = groupStats?.totalSavings || 0;
+  const totalWelfare = groupStats?.totalWelfare || 0;
+  const totalShares = groupStats?.totalShares || 0;
+  const shareValue = groupStats?.shareValue || 0;
+  const totalCashInBox = groupStats?.totalCashInBox || 0;
+  const totalLoans = groupStats?.totalLoansOutstanding || 0;
+  const welfareAmount = groupStats?.groupWelfareAmount || 0;
 
   return (
     <div className="min-h-screen bg-background">
@@ -118,14 +130,15 @@ export default function GroupDetails() {
           </div>
         </div>
 
-        {/* Group Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        {/* Group Stats - Share-Based VSLA */}
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">Total Members</CardTitle>
+              <CardTitle className="text-sm font-medium">Total Shares</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{members.length}</div>
+              <div className="text-2xl font-bold text-blue-600">{totalShares}</div>
+              <div className="text-xs text-muted-foreground">@ {formatCurrency(shareValue)} each</div>
             </CardContent>
           </Card>
           <Card>
@@ -133,23 +146,35 @@ export default function GroupDetails() {
               <CardTitle className="text-sm font-medium">Total Savings</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{formatCurrency(totalSavings)}</div>
+              <div className="text-2xl font-bold text-primary">{formatCurrency(totalSavings)}</div>
+              <div className="text-xs text-muted-foreground">{totalShares} × {formatCurrency(shareValue)}</div>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">Total Loans</CardTitle>
+              <CardTitle className="text-sm font-medium">Total Welfare</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{formatCurrency(totalLoans)}</div>
+              <div className="text-2xl font-bold text-purple-600">{formatCurrency(totalWelfare)}</div>
+              <div className="text-xs text-muted-foreground">{formatCurrency(welfareAmount)}/member</div>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">Available Cash</CardTitle>
+              <CardTitle className="text-sm font-medium">Outstanding Loans</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{formatCurrency(parseFloat(group.availableCash || 0))}</div>
+              <div className="text-2xl font-bold text-orange-600">{formatCurrency(totalLoans)}</div>
+              <div className="text-xs text-muted-foreground">{groupStats?.interestRate || 0}% per month</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Cash in Box</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-green-600">{formatCurrency(totalCashInBox)}</div>
+              <div className="text-xs text-muted-foreground">Available for loans</div>
             </CardContent>
           </Card>
         </div>
