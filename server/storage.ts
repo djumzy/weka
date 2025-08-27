@@ -30,6 +30,7 @@ export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   getUsers(): Promise<User[]>;
   getUserByPhoneOrUserId(phoneOrUserId: string): Promise<User | undefined>;
+  getUserByBarcodeData(barcodeData: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: string, updates: Partial<User>): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
@@ -102,6 +103,20 @@ export class DatabaseStorage implements IStorage {
         phoneOrUserId.startsWith('TD') 
           ? eq(users.userId, phoneOrUserId)
           : eq(users.phone, phoneOrUserId)
+      );
+    return user;
+  }
+
+  async getUserByBarcodeData(barcodeData: string): Promise<User | undefined> {
+    // Assuming barcode contains userId - you can modify this logic based on your barcode format
+    // The barcode could contain userId, phone, or other identifier
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(
+        barcodeData.startsWith('TD') 
+          ? eq(users.userId, barcodeData)
+          : eq(users.phone, barcodeData)
       );
     return user;
   }

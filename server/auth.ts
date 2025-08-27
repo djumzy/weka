@@ -105,6 +105,43 @@ export function setupAuth(app: Express) {
     }
   });
 
+  // Barcode login endpoint
+  app.post("/api/login/barcode", async (req: Request, res: Response) => {
+    try {
+      const { barcodeData } = req.body;
+      
+      if (!barcodeData || typeof barcodeData !== 'string') {
+        return res.status(400).json({ message: "Invalid barcode data" });
+      }
+
+      // Find user by barcode data (assuming barcode contains userId)
+      // You can modify this logic based on your barcode format
+      const user = await storage.getUserByBarcodeData(barcodeData);
+      if (!user) {
+        return res.status(401).json({ message: "Invalid barcode or user not found" });
+      }
+
+      // Check if user is active
+      if (!user.isActive) {
+        return res.status(401).json({ message: "Account is deactivated" });
+      }
+
+      // Update last login
+      await storage.updateUser(user.id, { lastLogin: new Date() });
+
+      // Set session
+      (req.session as any).userId = user.id;
+      (req.session as any).userRole = user.role;
+
+      // Return user data (without PIN)
+      const { pin: _, ...userWithoutPin } = user;
+      res.json(userWithoutPin);
+    } catch (error) {
+      console.error("Barcode login error:", error);
+      res.status(400).json({ message: "Barcode login failed" });
+    }
+  });
+
   // Logout endpoint
   app.post("/api/logout", (req: Request, res: Response) => {
     req.session.destroy((err) => {

@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { BarcodeScanner } from "@/components/BarcodeScanner";
 import { useToast } from "@/hooks/use-toast";
 import { Camera, Phone, KeyRound } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
@@ -42,6 +43,28 @@ export default function Login() {
     },
   });
 
+  const barcodeLoginMutation = useMutation({
+    mutationFn: async (barcodeData: string) => {
+      const response = await apiRequest("POST", "/api/login/barcode", { barcodeData });
+      return await response.json();
+    },
+    onSuccess: (user) => {
+      queryClient.setQueryData(["/api/auth/user"], user);
+      toast({
+        title: "Login Successful",
+        description: "Barcode login successful",
+      });
+      window.location.href = "/";
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Barcode Login Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleLogin = () => {
     if (!credentials.phoneOrUserId.trim() || !credentials.pin.trim()) {
       toast({
@@ -56,13 +79,16 @@ export default function Login() {
   };
 
   const handleBarcodeLogin = () => {
-    // This would integrate with a barcode scanning library
-    // For now, we'll simulate the process
     setShowBarcodeScanner(true);
-    toast({
-      title: "Barcode Scanner",
-      description: "Camera functionality will be integrated here",
-    });
+  };
+
+  const handleBarcodeScan = (barcodeData: string) => {
+    setShowBarcodeScanner(false);
+    barcodeLoginMutation.mutate(barcodeData);
+  };
+
+  const handleCloseBarcodeScanner = () => {
+    setShowBarcodeScanner(false);
   };
 
   return (
@@ -160,30 +186,22 @@ export default function Login() {
             variant="outline"
             onClick={handleBarcodeLogin}
             className="w-full"
+            disabled={barcodeLoginMutation.isPending}
             data-testid="button-barcode-login"
           >
             <Camera className="w-4 h-4 mr-2" />
-            Scan Barcode to Login
+            {barcodeLoginMutation.isPending ? "Processing..." : "Scan Barcode to Login"}
           </Button>
 
-          {showBarcodeScanner && (
-            <div className="border-2 border-dashed border-border rounded-lg p-8 text-center">
-              <Camera className="w-12 h-12 text-muted-foreground mx-auto mb-2" />
-              <p className="text-sm text-muted-foreground">
-                Camera integration will be implemented here
-              </p>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowBarcodeScanner(false)}
-                className="mt-2"
-              >
-                Cancel
-              </Button>
-            </div>
-          )}
         </CardContent>
       </Card>
+
+      {/* Barcode Scanner */}
+      <BarcodeScanner
+        isOpen={showBarcodeScanner}
+        onScan={handleBarcodeScan}
+        onClose={handleCloseBarcodeScanner}
+      />
     </div>
   );
 }
