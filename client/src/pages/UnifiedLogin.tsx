@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
+import { BarcodeScanner } from "@/components/BarcodeScanner";
 import { Users, UserCog, Camera } from "lucide-react";
 
 interface LoginFormData {
@@ -30,7 +31,7 @@ export default function UnifiedLogin() {
   // Staff login form
   const [staffIdentifier, setStaffIdentifier] = useState("");
   const [staffPassword, setStaffPassword] = useState("");
-  const [isScanning, setIsScanning] = useState(false);
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
 
   const loginMutation = useMutation({
     mutationFn: async (formData: LoginFormData) => {
@@ -135,13 +136,68 @@ export default function UnifiedLogin() {
   };
 
   const handleBarcodeScan = () => {
-    setIsScanning(true);
-    // TODO: Implement barcode scanning functionality
+    setIsScannerOpen(true);
+  };
+
+  const handleScanSuccess = (barcodeData: string) => {
+    // Parse barcode data - expecting format: "TD123456:123456" (userId:pin)
+    const parsedData = parseBarcodeData(barcodeData);
+    if (parsedData) {
+      // Auto-fill the form and submit
+      setStaffIdentifier(parsedData.userId);
+      setStaffPassword(parsedData.pin);
+      
+      // Auto-login with scanned credentials
+      loginMutation.mutate({
+        userType: 'staff',
+        userId: parsedData.userId,
+        pin: parsedData.pin,
+      });
+    } else {
+      toast({
+        title: "Invalid barcode",
+        description: "Barcode format should be: TD123456:123456",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const parseBarcodeData = (data: string): { userId: string; pin: string } | null => {
+    try {
+      // Expected format: "TD123456:123456" (userId:pin)
+      const parts = data.split(':');
+      if (parts.length !== 2) {
+        return null;
+      }
+
+      const [userId, pin] = parts;
+      
+      // Validate userId format (should start with TD)
+      if (!userId.toUpperCase().startsWith('TD')) {
+        return null;
+      }
+
+      // Validate PIN (should be numeric)
+      if (!/^\d+$/.test(pin)) {
+        return null;
+      }
+
+      return {
+        userId: userId.toUpperCase(),
+        pin: pin
+      };
+    } catch (error) {
+      console.error('Error parsing barcode data:', error);
+      return null;
+    }
+  };
+
+  const handleScanError = (error: string) => {
     toast({
-      title: "Camera opening",
-      description: "Barcode scanning will be implemented",
+      title: "Scan error",
+      description: error,
+      variant: "destructive",
     });
-    setTimeout(() => setIsScanning(false), 2000);
   };
 
   return (
@@ -253,11 +309,10 @@ export default function UnifiedLogin() {
                       variant="outline"
                       className="w-full"
                       onClick={handleBarcodeScan}
-                      disabled={isScanning}
                       data-testid="button-barcode-scan"
                     >
                       <Camera className="h-4 w-4 mr-2" />
-                      {isScanning ? "Opening Camera..." : "Scan ID Card"}
+                      Scan ID Card
                     </Button>
                   </div>
 
@@ -275,6 +330,12 @@ export default function UnifiedLogin() {
           </CardContent>
         </Card>
 
+        {/* Barcode Scanner Modal */}
+        <BarcodeScanner
+          isOpen={isScannerOpen}
+          onClose={() => setIsScannerOpen(false)}
+          onScan={handleScanSuccess}
+        />
       </div>
     </div>
   );
