@@ -22,12 +22,24 @@ export default function GroupDetails() {
 
   // Fetch group members
   const { data: members = [], isLoading: membersLoading } = useQuery({
-    queryKey: ["/api/members", { groupId }],
+    queryKey: ["/api/members", groupId],
+    queryFn: async () => {
+      const response = await fetch(`/api/members?groupId=${groupId}`);
+      if (!response.ok) throw new Error('Failed to fetch members');
+      return response.json();
+    },
+    enabled: !!groupId,
   });
 
   // Fetch group transactions
   const { data: transactions = [] } = useQuery({
-    queryKey: ["/api/transactions", { groupId }],
+    queryKey: ["/api/transactions", groupId],
+    queryFn: async () => {
+      const response = await fetch(`/api/transactions?groupId=${groupId}`);
+      if (!response.ok) throw new Error('Failed to fetch transactions');
+      return response.json();
+    },
+    enabled: !!groupId,
   });
 
   // Check if user can edit (admin, field_monitor, field_attendant)
@@ -53,9 +65,9 @@ export default function GroupDetails() {
     sum + parseFloat(member.savingsBalance || 0), 0
   );
 
-  const totalLoans = transactions
-    .filter((t: any) => t.type === 'loan_disbursement')
-    .reduce((sum: number, t: any) => sum + parseFloat(t.amount || 0), 0);
+  const totalLoans = members.reduce((sum: number, member: any) => 
+    sum + parseFloat(member.currentLoan || 0), 0
+  );
 
   return (
     <div className="min-h-screen bg-background">
