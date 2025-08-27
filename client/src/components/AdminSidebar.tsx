@@ -14,6 +14,8 @@ import {
   Calculator,
   UserPlus,
 } from "lucide-react";
+import wekaLogo from "@assets/WEKA_1756289094166.png";
+import dreamersLogo from "@assets/updated logo the dreamers_1756291084041.png";
 
 const navigationItems = [
   { href: "/", icon: Home, label: "Dashboard" },
@@ -50,16 +52,23 @@ export function AdminSidebar() {
     <aside className="w-64 bg-card border-r border-border flex flex-col" data-testid="admin-sidebar">
       {/* Header */}
       <div className="p-6 border-b border-border">
-        <div className="flex items-center space-x-3" data-testid="sidebar-header">
-          <img 
-            src="/attached_assets/WEKA_1756289094166.png" 
-            alt="WEKA Logo" 
-            className="w-10 h-10 object-contain"
-          />
-          <div>
-            <h1 className="text-lg font-semibold text-foreground">WEKA Admin</h1>
-            <p className="text-sm text-muted-foreground">Community Banking</p>
+        <div className="flex items-center justify-between" data-testid="sidebar-header">
+          <div className="flex items-center space-x-3">
+            <img 
+              src={wekaLogo} 
+              alt="WEKA Logo" 
+              className="w-10 h-10 object-contain"
+            />
+            <div>
+              <h1 className="text-lg font-semibold text-foreground">WEKA Admin</h1>
+              <p className="text-sm text-muted-foreground">Community Banking</p>
+            </div>
           </div>
+          <img 
+            src={dreamersLogo} 
+            alt="The Dreamers Logo" 
+            className="w-8 h-8 object-contain"
+          />
         </div>
       </div>
 
@@ -98,14 +107,14 @@ export function AdminSidebar() {
         <div className="flex items-center space-x-3">
           <div className="w-8 h-8 bg-secondary rounded-full flex items-center justify-center">
             <span className="text-xs font-medium text-secondary-foreground">
-              {user?.firstName?.[0] || user?.email?.[0] || "U"}
+              {(user as any)?.firstName?.[0] || (user as any)?.email?.[0] || "U"}
             </span>
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-foreground truncate">
-              {user?.firstName && user?.lastName 
-                ? `${user.firstName} ${user.lastName}` 
-                : user?.email || "User"
+              {(user as any)?.firstName && (user as any)?.lastName 
+                ? `${(user as any).firstName} ${(user as any).lastName}` 
+                : (user as any)?.email || "User"
               }
             </p>
             <p className="text-xs text-muted-foreground">Administrator</p>

@@ -1,6 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DollarSign, Users, FileText, BarChart3 } from "lucide-react";
+import wekaLogo from "@assets/WEKA_1756289094166.png";
+import dreamersLogo from "@assets/updated logo the dreamers_1756291084041.png";
 
 export default function Landing() {
   const handleLogin = () => {
@@ -15,7 +17,7 @@ export default function Landing() {
           <div className="flex justify-between items-center py-6">
             <div className="flex items-center space-x-3">
               <img 
-                src="/attached_assets/WEKA_1756289094166.png" 
+                src={wekaLogo} 
                 alt="WEKA Logo" 
                 className="w-10 h-10 object-contain"
               />
@@ -24,9 +26,16 @@ export default function Landing() {
                 <p className="text-sm text-muted-foreground">Wealth, Equity, Knowledge, and Accessibility</p>
               </div>
             </div>
-            <Button onClick={handleLogin} data-testid="button-login">
-              Sign In
-            </Button>
+            <div className="flex items-center space-x-4">
+              <img 
+                src={dreamersLogo} 
+                alt="The Dreamers Logo" 
+                className="w-8 h-8 object-contain"
+              />
+              <Button onClick={handleLogin} data-testid="button-login">
+                Sign In
+              </Button>
+            </div>
           </div>
         </div>
       </header>
@@ -122,11 +131,16 @@ export default function Landing() {
           <div className="text-center">
             <div className="flex items-center justify-center space-x-3 mb-4">
               <img 
-                src="/attached_assets/WEKA_1756289094166.png" 
+                src={wekaLogo} 
                 alt="WEKA Logo" 
                 className="w-8 h-8 object-contain"
               />
               <span className="text-lg font-semibold text-foreground">WEKA</span>
+              <img 
+                src={dreamersLogo} 
+                alt="The Dreamers Logo" 
+                className="w-8 h-8 object-contain"
+              />
             </div>
             <p className="text-muted-foreground">
               Empowering communities through organized savings and lending.

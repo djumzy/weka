@@ -8,6 +8,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Camera, Phone, KeyRound } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import wekaLogo from "@assets/WEKA_1756289094166.png";
+import dreamersLogo from "@assets/updated logo the dreamers_1756291084041.png";
 
 interface LoginCredentials {
   phoneOrUserId: string;
@@ -70,11 +72,16 @@ export default function Login() {
     >
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <div className="flex justify-center mb-4">
+          <div className="flex justify-between items-center mb-4">
             <img 
-              src="/attached_assets/WEKA_1756289094166.png" 
+              src={wekaLogo} 
               alt="WEKA Logo" 
-              className="w-24 h-24 object-contain"
+              className="w-16 h-16 object-contain"
+            />
+            <img 
+              src={dreamersLogo} 
+              alt="The Dreamers Logo" 
+              className="w-16 h-16 object-contain"
             />
           </div>
           <CardTitle className="text-2xl font-bold">WEKA</CardTitle>
