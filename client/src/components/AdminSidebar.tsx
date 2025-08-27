@@ -1,6 +1,7 @@
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import {
   Home,
   Users,
@@ -30,8 +31,19 @@ export function AdminSidebar() {
   const [location] = useLocation();
   const { user } = useAuth();
 
-  const handleLogout = () => {
-    window.location.href = "/api/logout";
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/logout", { 
+        method: "POST",
+        credentials: "include" 
+      });
+      // Force page reload to clear authentication state
+      window.location.href = "/";
+    } catch (error) {
+      console.error("Logout error:", error);
+      // Force redirect even on error
+      window.location.href = "/";
+    }
   };
 
   return (
@@ -76,7 +88,13 @@ export function AdminSidebar() {
       </nav>
 
       {/* Footer */}
-      <div className="p-4 border-t border-border" data-testid="sidebar-footer">
+      <div className="p-4 border-t border-border space-y-3" data-testid="sidebar-footer">
+        {/* Theme Toggle */}
+        <div className="flex justify-center">
+          <ThemeToggle />
+        </div>
+        
+        {/* User Info */}
         <div className="flex items-center space-x-3">
           <div className="w-8 h-8 bg-secondary rounded-full flex items-center justify-center">
             <span className="text-xs font-medium text-secondary-foreground">

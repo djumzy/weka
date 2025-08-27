@@ -1,15 +1,19 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { AdminSidebar } from "@/components/AdminSidebar";
+import { NewMemberModal } from "@/components/modals/NewMemberModal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import { Plus, Search, User } from "lucide-react";
 import { format } from "date-fns";
+import { formatCurrency } from "@/utils/currency";
 
 export default function Members() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedGroupId, setSelectedGroupId] = useState<string>("all");
+  const [isNewMemberModalOpen, setIsNewMemberModalOpen] = useState(false);
 
   const { data: members = [], isLoading: membersLoading } = useQuery({
     queryKey: ["/api/members"],
@@ -65,7 +69,7 @@ export default function Members() {
               <h2 className="text-2xl font-bold text-foreground" data-testid="page-title">Members</h2>
               <p className="text-muted-foreground">Manage all group members</p>
             </div>
-            <Button data-testid="button-add-member">
+            <Button onClick={() => setIsNewMemberModalOpen(true)} data-testid="button-add-member">
               <Plus className="w-4 h-4 mr-2" />
               Add Member
             </Button>
@@ -130,6 +134,7 @@ export default function Members() {
                       <th className="text-left p-4 text-sm font-medium text-muted-foreground">Name</th>
                       <th className="text-left p-4 text-sm font-medium text-muted-foreground">Contact</th>
                       <th className="text-left p-4 text-sm font-medium text-muted-foreground">Group</th>
+                      <th className="text-left p-4 text-sm font-medium text-muted-foreground">Role</th>
                       <th className="text-left p-4 text-sm font-medium text-muted-foreground">Join Date</th>
                       <th className="text-left p-4 text-sm font-medium text-muted-foreground">Savings Balance</th>
                       <th className="text-left p-4 text-sm font-medium text-muted-foreground">Status</th>
@@ -170,11 +175,23 @@ export default function Members() {
                         <td className="p-4 text-sm text-foreground" data-testid={`member-group-${member.id}`}>
                           {getGroupName(member.groupId)}
                         </td>
+                        <td className="p-4">
+                          <Badge 
+                            variant={
+                              member.groupRole === 'chairman' ? 'default' :
+                              member.groupRole === 'finance' ? 'secondary' :
+                              member.groupRole === 'secretary' ? 'outline' : 
+                              'destructive'
+                            }
+                          >
+                            {member.groupRole?.charAt(0).toUpperCase() + member.groupRole?.slice(1) || 'Member'}
+                          </Badge>
+                        </td>
                         <td className="p-4 text-sm text-foreground">
                           {format(new Date(member.joinDate), "MMM dd, yyyy")}
                         </td>
                         <td className="p-4 text-sm font-medium text-foreground" data-testid={`member-balance-${member.id}`}>
-                          ${parseFloat(member.savingsBalance).toFixed(2)}
+                          {formatCurrency(parseFloat(member.savingsBalance || 0))}
                         </td>
                         <td className="p-4">
                           <span 
@@ -201,6 +218,13 @@ export default function Members() {
           )}
         </div>
       </main>
+
+      {/* New Member Modal */}
+      <NewMemberModal 
+        open={isNewMemberModalOpen} 
+        onOpenChange={setIsNewMemberModalOpen}
+        groups={groups}
+      />
     </div>
   );
 }

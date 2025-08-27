@@ -71,13 +71,14 @@ export const groups = pgTable("groups", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-// Group Members with gender tracking
+// Group Members with gender tracking and group roles
 export const members = pgTable("members", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   groupId: varchar("group_id").notNull().references(() => groups.id),
   firstName: varchar("first_name", { length: 100 }).notNull(),
   lastName: varchar("last_name", { length: 100 }).notNull(),
   gender: varchar("gender", { length: 10 }).notNull(), // M or F
+  groupRole: varchar("group_role", { length: 20 }).notNull().default('member'), // member, secretary, finance, chairman
   email: varchar("email", { length: 255 }),
   phone: varchar("phone", { length: 20 }),
   address: text("address"),
