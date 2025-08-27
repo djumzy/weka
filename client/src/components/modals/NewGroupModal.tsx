@@ -51,6 +51,7 @@ export function NewGroupModal({ open, onOpenChange }: NewGroupModalProps) {
       maxMembers: 30,
       cycleMonths: 12,
       savingPerShare: "0",
+      interestRate: "5.0",
       mainActivity: "",
       otherActivities: "",
       registrationDate: new Date().toISOString().split('T')[0],
@@ -234,6 +235,30 @@ export function NewGroupModal({ open, onOpenChange }: NewGroupModalProps) {
                           {...field}
                           placeholder="0.00"
                           data-testid="input-current-saving"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="interestRate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Loan Interest Rate (%)</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min="0"
+                          max="50"
+                          step="0.1"
+                          {...field}
+                          placeholder="5.0"
+                          data-testid="input-interest-rate"
                         />
                       </FormControl>
                       <FormMessage />

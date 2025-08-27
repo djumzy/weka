@@ -394,23 +394,40 @@ export class DatabaseStorage implements IStorage {
       .where(eq(members.isActive, true));
     const [currentLoansSum] = await db.select({ sum: sum(members.currentLoan) }).from(members)
       .where(eq(members.isActive, true));
-    const [cashSum] = await db.select({ sum: sum(groups.availableCash) }).from(groups)
-      .where(eq(groups.isActive, true));
+    // Calculate available cash in box: Total Savings - Total Loans Outstanding
+    const totalSavingsValue = parseFloat(savingsSum.sum || '0');
+    const totalCurrentLoans = parseFloat(currentLoansSum.sum || '0');
+    const availableCashInBox = totalSavingsValue - totalCurrentLoans;
+
     const [loanCount] = await db.select({ count: count() }).from(loans)
       .where(eq(loans.status, 'active'));
     const allLoans = await db.select().from(loans);
     const totalLoansGiven = allLoans.reduce((total, loan) => total + parseFloat(loan.amount || '0'), 0);
-    const totalInterest = allLoans.reduce((total, loan) => total + parseFloat(loan.interestRate || '0'), 0);
+    
+    // Calculate total interest: Sum of interest amounts based on current loans and group rates
+    const groupsWithLoans = await db.select({
+      groupId: loans.groupId,
+      loanAmount: loans.amount,
+      interestRate: groups.interestRate
+    }).from(loans)
+    .innerJoin(groups, eq(loans.groupId, groups.id))
+    .where(eq(loans.status, 'active'));
+    
+    const totalInterest = groupsWithLoans.reduce((total, item) => {
+      const loanAmount = parseFloat(item.loanAmount || '0');
+      const rate = parseFloat(item.interestRate || '0');
+      return total + (loanAmount * rate / 100); // Calculate interest based on loan amount and group rate
+    }, 0);
 
     return {
       totalGroups: groupCount.count,
       totalMembers: memberCount.count,
       maleMembers: maleCount.count,
       femaleMembers: femaleCount.count,
-      totalSavings: parseFloat(savingsSum.sum || '0'),
-      totalCashInBox: parseFloat(cashSum.sum || '0'),
+      totalSavings: totalSavingsValue,
+      totalCashInBox: availableCashInBox, // Total Savings - Total Loans Outstanding
       activeLoans: loanCount.count,
-      totalLoansGiven: parseFloat(currentLoansSum.sum || '0'), // Use currentLoan from members
+      totalLoansGiven: totalCurrentLoans, // Use currentLoan from members
       totalInterest: totalInterest,
     };
   }
