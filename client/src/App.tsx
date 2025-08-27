@@ -35,7 +35,6 @@ function Router() {
           <Route path="/meetings" component={Meetings} />
           <Route path="/user-management" component={UserManagement} />
           <Route path="/reports" component={Reports} />
-          <Route component={NotFound} />
         </>
       )}
     </Switch>
