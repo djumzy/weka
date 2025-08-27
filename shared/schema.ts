@@ -57,6 +57,7 @@ export const groups = pgTable("groups", {
   savingPerShare: decimal("saving_per_share", { precision: 12, scale: 2 }).notNull().default('0.00'),
   cycleMonths: integer("cycle_months").notNull().default(12), // Number of months per cycle
   interestRate: decimal("interest_rate", { precision: 5, scale: 2 }).notNull().default('2.00'), // Group's loan interest rate
+  welfareAmount: decimal("welfare_amount", { precision: 12, scale: 2 }).notNull().default('0.00'), // Agreed welfare amount per member
   mainActivity: text("main_activity"),
   otherActivities: text("other_activities"),
   registrationDate: date("registration_date").notNull(),
@@ -85,6 +86,7 @@ export const members = pgTable("members", {
   joinDate: date("join_date").notNull(),
   isActive: boolean("is_active").notNull().default(true),
   savingsBalance: decimal("savings_balance", { precision: 12, scale: 2 }).notNull().default('0.00'),
+  welfareBalance: decimal("welfare_balance", { precision: 12, scale: 2 }).notNull().default('0.00'),
   nextOfKin: varchar("next_of_kin", { length: 255 }),
   pin: varchar("pin", { length: 4 }).notNull(),
   currentLoan: decimal("current_loan", { precision: 12, scale: 2 }).notNull().default('0.00'),
@@ -97,7 +99,7 @@ export const transactions = pgTable("transactions", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   groupId: varchar("group_id").notNull().references(() => groups.id),
   memberId: varchar("member_id").notNull().references(() => members.id),
-  type: varchar("type", { length: 20 }).notNull(), // deposit, withdrawal, loan_payment, loan_disbursement
+  type: varchar("type", { length: 20 }).notNull(), // deposit, withdrawal, loan_payment, loan_disbursement, welfare_payment
   amount: decimal("amount", { precision: 12, scale: 2 }).notNull(),
   description: text("description"),
   transactionDate: timestamp("transaction_date").notNull().defaultNow(),

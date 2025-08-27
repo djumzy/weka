@@ -52,6 +52,7 @@ export function NewGroupModal({ open, onOpenChange }: NewGroupModalProps) {
       cycleMonths: 12,
       savingPerShare: "0",
       interestRate: "5.0",
+      welfareAmount: "0",
       mainActivity: "",
       otherActivities: "",
       registrationDate: new Date().toISOString().split('T')[0],
@@ -259,6 +260,27 @@ export function NewGroupModal({ open, onOpenChange }: NewGroupModalProps) {
                           {...field}
                           placeholder="5.0"
                           data-testid="input-interest-rate"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="welfareAmount"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Welfare Amount (UGX per member)</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min="0"
+                          step="1000"
+                          {...field}
+                          placeholder="10000"
+                          data-testid="input-welfare-amount"
                         />
                       </FormControl>
                       <FormMessage />

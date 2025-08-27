@@ -379,6 +379,7 @@ export class DatabaseStorage implements IStorage {
     maleMembers: number;
     femaleMembers: number;
     totalSavings: number;
+    totalWelfare: number;
     totalCashInBox: number;
     activeLoans: number;
     totalLoansGiven: number;
@@ -391,6 +392,8 @@ export class DatabaseStorage implements IStorage {
     const [femaleCount] = await db.select({ count: count() }).from(members)
       .where(and(eq(members.isActive, true), eq(members.gender, 'F')));
     const [savingsSum] = await db.select({ sum: sum(members.savingsBalance) }).from(members)
+      .where(eq(members.isActive, true));
+    const [welfareSum] = await db.select({ sum: sum(members.welfareBalance) }).from(members)
       .where(eq(members.isActive, true));
     const [currentLoansSum] = await db.select({ sum: sum(members.currentLoan) }).from(members)
       .where(eq(members.isActive, true));
@@ -425,6 +428,7 @@ export class DatabaseStorage implements IStorage {
       maleMembers: maleCount.count,
       femaleMembers: femaleCount.count,
       totalSavings: totalSavingsValue,
+      totalWelfare: parseFloat(welfareSum.sum || '0'),
       totalCashInBox: availableCashInBox, // Total Savings - Total Loans Outstanding
       activeLoans: loanCount.count,
       totalLoansGiven: totalCurrentLoans, // Use currentLoan from members

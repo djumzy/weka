@@ -140,6 +140,14 @@ export default function Dashboard() {
               trend={{ value: "+12.5%", label: "vs last month", isPositive: true }}
             />
             <StatsCard
+              title="Total Welfare"
+              value={formatCurrency(stats?.totalWelfare || 0)}
+              icon={UserCheck}
+              iconColor="text-purple-600"
+              iconBgColor="bg-purple-100"
+              trend={{ value: formatCurrency(stats?.totalWelfare || 0), label: "welfare fund" }}
+            />
+            <StatsCard
               title="Available Cash in Box"
               value={formatCurrency(stats?.totalCashInBox || 0)}
               icon={Wallet}
@@ -158,10 +166,10 @@ export default function Dashboard() {
             <StatsCard
               title="Total Interest"
               value={formatCurrency(stats?.totalInterest || 0)}
-              icon={UserCheck}
-              iconColor="text-purple-600"
-              iconBgColor="bg-purple-100"
-              trend={{ value: formatCurrency(stats?.totalInterest || 0), label: "earned" }}
+              icon={FileText}
+              iconColor="text-indigo-600"
+              iconBgColor="bg-indigo-100"
+              trend={{ value: formatCurrency(stats?.totalInterest || 0), label: "interest earned" }}
             />
           </div>
 
