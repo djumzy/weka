@@ -114,11 +114,11 @@ export default function UnifiedLogin() {
   const handleStaffLogin = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Check if at least one identifier (userId or phone) and password are provided
+    // Check if at least one identifier (userId or phone) and PIN are provided
     if ((!staffUserId && !staffPhone) || !staffPassword) {
       toast({
         title: "Missing information",
-        description: "Please enter either User ID or phone number, plus password",
+        description: "Please enter either User ID or phone number, plus PIN",
         variant: "destructive",
       });
       return;
@@ -128,7 +128,7 @@ export default function UnifiedLogin() {
       userType: 'staff',
       userId: staffUserId || undefined,
       phone: staffPhone || undefined,
-      password: staffPassword,
+      pin: staffPassword, // Using PIN instead of password
     });
   };
 
@@ -243,11 +243,11 @@ export default function UnifiedLogin() {
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="staff-password">Password</Label>
+                    <Label htmlFor="staff-password">PIN</Label>
                     <Input
                       id="staff-password"
                       type="password"
-                      placeholder="Enter your password"
+                      placeholder="Enter your PIN"
                       value={staffPassword}
                       onChange={(e) => setStaffPassword(e.target.value)}
                       data-testid="input-staff-password"

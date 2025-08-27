@@ -194,21 +194,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Staff login endpoint
   app.post('/api/auth/staff-login', async (req, res) => {
     try {
-      const { userId, phone, password, barcode } = req.body;
+      const { userId, phone, pin, barcode } = req.body;
       
-      // Check if at least one identifier is provided along with password
-      if ((!userId && !phone) || !password) {
-        return res.status(400).json({ message: "Either User ID or phone number is required, along with password" });
+      // Check if at least one identifier is provided along with PIN
+      if ((!userId && !phone) || !pin) {
+        return res.status(400).json({ message: "Either User ID or phone number is required, along with PIN" });
       }
       
       let user;
       
-      // Try to find user by userId or phone
-      if (userId && phone) {
-        user = await storage.getUserByUserIdAndPhone(userId, phone);
-      } else if (userId) {
+      // Try to find user by userId or phone separately
+      if (userId) {
+        // Find by userId only
         user = await storage.getUserByPhoneOrUserId(userId);
       } else if (phone) {
+        // Find by phone only
         user = await storage.getUserByPhoneOrUserId(phone);
       }
       
@@ -216,8 +216,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Invalid credentials" });
       }
       
-      // Verify password (in production, use proper hashing)
-      if (user.password !== password) {
+      // Verify PIN (in production, use proper hashing)
+      if (user.pin !== pin) {
         return res.status(401).json({ message: "Invalid credentials" });
       }
       
