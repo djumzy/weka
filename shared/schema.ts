@@ -254,7 +254,6 @@ export const insertMemberSchema = createInsertSchema(members).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
-  savingsBalance: true,
 });
 
 export const insertTransactionSchema = createInsertSchema(transactions).omit({
