@@ -9,11 +9,14 @@ import { useAuth } from "@/hooks/useAuth";
 import { Link } from "wouter";
 import { formatCurrency } from "@/lib/utils";
 import { NewMemberModal } from "@/components/modals/NewMemberModal";
+import { MemberDetailsModal } from "@/components/MemberDetailsModal";
 
 export default function GroupDetails() {
   const { groupId } = useParams<{ groupId: string }>();
   const { user } = useAuth();
   const [isNewMemberModalOpen, setIsNewMemberModalOpen] = useState(false);
+  const [selectedMember, setSelectedMember] = useState(null);
+  const [isMemberDetailsOpen, setIsMemberDetailsOpen] = useState(false);
 
   // Fetch group details
   const { data: group, isLoading: groupLoading } = useQuery({
@@ -201,7 +204,11 @@ export default function GroupDetails() {
                 {members.map((member: any) => (
                   <div
                     key={member.id}
-                    className="flex items-center justify-between p-3 rounded-lg border border-border"
+                    className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-accent/50 cursor-pointer transition-colors"
+                    onClick={() => {
+                      setSelectedMember(member);
+                      setIsMemberDetailsOpen(true);
+                    }}
                     data-testid={`member-${member.id}`}
                   >
                     <div className="flex items-center space-x-3">
@@ -235,6 +242,17 @@ export default function GroupDetails() {
         onOpenChange={setIsNewMemberModalOpen}
         groupId={groupId!}
         groupName={group.name}
+      />
+
+      {/* Member Details Modal */}
+      <MemberDetailsModal
+        member={selectedMember}
+        groupName={group.name}
+        isOpen={isMemberDetailsOpen}
+        onClose={() => {
+          setIsMemberDetailsOpen(false);
+          setSelectedMember(null);
+        }}
       />
     </div>
   );
