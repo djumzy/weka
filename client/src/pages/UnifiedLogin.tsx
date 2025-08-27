@@ -28,8 +28,7 @@ export default function UnifiedLogin() {
   const [memberPin, setMemberPin] = useState("");
   
   // Staff login form
-  const [staffUserId, setStaffUserId] = useState("");
-  const [staffPhone, setStaffPhone] = useState("");
+  const [staffIdentifier, setStaffIdentifier] = useState("");
   const [staffPassword, setStaffPassword] = useState("");
   const [isScanning, setIsScanning] = useState(false);
 
@@ -114,21 +113,24 @@ export default function UnifiedLogin() {
   const handleStaffLogin = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Check if at least one identifier (userId or phone) and PIN are provided
-    if ((!staffUserId && !staffPhone) || !staffPassword) {
+    // Check if identifier and PIN are provided
+    if (!staffIdentifier || !staffPassword) {
       toast({
         title: "Missing information",
-        description: "Please enter either User ID or phone number, plus PIN",
+        description: "Please enter your User ID or phone number, plus PIN",
         variant: "destructive",
       });
       return;
     }
     
+    // Determine if the identifier is a User ID (starts with TD) or phone number
+    const isUserId = staffIdentifier.toUpperCase().startsWith('TD');
+    
     loginMutation.mutate({
       userType: 'staff',
-      userId: staffUserId || undefined,
-      phone: staffPhone || undefined,
-      pin: staffPassword, // Using PIN instead of password
+      userId: isUserId ? staffIdentifier.toUpperCase() : undefined,
+      phone: !isUserId ? staffIdentifier : undefined,
+      pin: staffPassword,
     });
   };
 
@@ -219,26 +221,15 @@ export default function UnifiedLogin() {
               <TabsContent value="staff" className="mt-6">
                 <form onSubmit={handleStaffLogin} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="staff-userid">User ID (Optional)</Label>
+                    <Label htmlFor="staff-identifier">User ID or Phone Number</Label>
                     <Input
-                      id="staff-userid"
+                      id="staff-identifier"
                       type="text"
-                      placeholder="TD123456"
-                      value={staffUserId}
-                      onChange={(e) => setStaffUserId(e.target.value.toUpperCase())}
-                      data-testid="input-staff-userid"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="staff-phone">Phone Number (Optional if User ID provided)</Label>
-                    <Input
-                      id="staff-phone"
-                      type="tel"
-                      placeholder="256700000000"
-                      value={staffPhone}
-                      onChange={(e) => setStaffPhone(e.target.value)}
-                      data-testid="input-staff-phone"
+                      placeholder="TD123456 or 256700000000"
+                      value={staffIdentifier}
+                      onChange={(e) => setStaffIdentifier(e.target.value)}
+                      data-testid="input-staff-identifier"
+                      required
                     />
                   </div>
                   
