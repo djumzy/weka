@@ -61,7 +61,7 @@ export function AdminSidebar() {
             />
             <div>
               <h1 className="text-lg font-semibold text-foreground">WEKA Admin</h1>
-              <p className="text-sm text-muted-foreground">Community Banking</p>
+              <p className="text-sm text-muted-foreground">Save For Future</p>
             </div>
           </div>
           <img 

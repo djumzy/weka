@@ -44,7 +44,7 @@ export default function Landing() {
       <section className="py-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-4xl font-bold text-foreground mb-6">
-            Community Banking System with WEKA
+            Save For Future System with WEKA
           </h2>
           <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
             Empowering communities through Wealth, Equity, Knowledge, and Accessibility. 
@@ -66,7 +66,7 @@ export default function Landing() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h3 className="text-3xl font-bold text-foreground mb-4">
-              WEKA Features for Community Banking
+              WEKA Features for Save For Future
             </h3>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
               From member registration to loan processing, our platform handles all aspects of VSLA management.
