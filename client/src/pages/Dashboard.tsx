@@ -7,6 +7,7 @@ import { GroupCard } from "@/components/GroupCard";
 import { PendingActionCard } from "@/components/PendingActionCard";
 import { QuickActionButton } from "@/components/QuickActionButton";
 import { NewGroupModal } from "@/components/modals/NewGroupModal";
+import { GroupDetailsModal } from "@/components/GroupDetailsModal";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatCurrency } from "@/utils/currency";
@@ -15,6 +16,8 @@ import { Users, User, DollarSign, FileText, Calendar, Plus, Wallet, UserCheck, U
 export default function Dashboard() {
   const [selectedGroupId, setSelectedGroupId] = useState<string>("all");
   const [isNewGroupModalOpen, setIsNewGroupModalOpen] = useState(false);
+  const [selectedGroup, setSelectedGroup] = useState(null);
+  const [isGroupDetailsOpen, setIsGroupDetailsOpen] = useState(false);
 
   // Fetch dashboard stats
   const { data: stats, isLoading: statsLoading } = useQuery({
@@ -272,6 +275,10 @@ export default function Dashboard() {
                           .filter((m: any) => m.groupId === group.id)
                           .reduce((sum: number, m: any) => sum + parseFloat(m.savingsBalance || 0), 0)
                         }
+                        onViewClick={(group) => {
+                          setSelectedGroup(group);
+                          setIsGroupDetailsOpen(true);
+                        }}
                       />
                     ))
                   )}
@@ -299,6 +306,15 @@ export default function Dashboard() {
       <NewGroupModal
         open={isNewGroupModalOpen}
         onOpenChange={setIsNewGroupModalOpen}
+      />
+
+      <GroupDetailsModal
+        group={selectedGroup}
+        isOpen={isGroupDetailsOpen}
+        onClose={() => {
+          setIsGroupDetailsOpen(false);
+          setSelectedGroup(null);
+        }}
       />
     </div>
   );
