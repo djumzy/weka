@@ -1,5 +1,6 @@
 import { Group } from "@shared/schema";
 import { format } from "date-fns";
+import { Link } from "wouter";
 
 interface GroupCardProps {
   group: Group;
@@ -17,10 +18,11 @@ export function GroupCard({ group, memberCount, totalSavings, nextMeeting }: Gro
     .slice(0, 2);
 
   return (
-    <div 
-      className="flex items-center justify-between p-4 rounded-lg border border-border hover:bg-muted/25 transition-colors"
-      data-testid={`group-card-${group.id}`}
-    >
+    <Link href={`/groups/${group.id}`}>
+      <div 
+        className="flex items-center justify-between p-4 rounded-lg border border-border hover:bg-muted/25 transition-colors cursor-pointer"
+        data-testid={`group-card-${group.id}`}
+      >
       <div className="flex items-center space-x-3">
         <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
           <span className="text-sm font-semibold text-primary" data-testid={`group-initials-${group.id}`}>
@@ -46,6 +48,7 @@ export function GroupCard({ group, memberCount, totalSavings, nextMeeting }: Gro
           </p>
         )}
       </div>
-    </div>
+      </div>
+    </Link>
   );
 }

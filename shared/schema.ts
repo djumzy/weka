@@ -85,6 +85,9 @@ export const members = pgTable("members", {
   joinDate: date("join_date").notNull(),
   isActive: boolean("is_active").notNull().default(true),
   savingsBalance: decimal("savings_balance", { precision: 12, scale: 2 }).notNull().default('0.00'),
+  nextOfKin: varchar("next_of_kin", { length: 255 }),
+  pin: varchar("pin", { length: 4 }).notNull(),
+  currentLoan: decimal("current_loan", { precision: 12, scale: 2 }).notNull().default('0.00'),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

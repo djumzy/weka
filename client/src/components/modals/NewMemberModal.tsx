@@ -33,24 +33,31 @@ import { Button } from "@/components/ui/button";
 interface NewMemberModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  groups: any[];
+  groupId: string;
+  groupName: string;
 }
 
-export function NewMemberModal({ open, onOpenChange, groups }: NewMemberModalProps) {
+export function NewMemberModal({ open, onOpenChange, groupId, groupName }: NewMemberModalProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const form = useForm<InsertMember>({
     resolver: zodResolver(insertMemberSchema),
     defaultValues: {
+      groupId,
       firstName: "",
       lastName: "",
-      gender: "M",
+      gender: "",
       groupRole: "member",
       email: "",
       phone: "",
       address: "",
       joinDate: new Date().toISOString().split('T')[0],
+      isActive: true,
+      savingsBalance: "0",
+      nextOfKin: "",
+      pin: "",
+      currentLoan: "0",
     },
   });
 
@@ -62,6 +69,7 @@ export function NewMemberModal({ open, onOpenChange, groups }: NewMemberModalPro
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/members"] });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/groups", groupId] });
       toast({
         title: "Success",
         description: "Member added successfully",
@@ -84,9 +92,9 @@ export function NewMemberModal({ open, onOpenChange, groups }: NewMemberModalPro
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px]" data-testid="new-member-modal">
+      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto" data-testid="new-member-modal">
         <DialogHeader>
-          <DialogTitle>Add New Member</DialogTitle>
+          <DialogTitle>Add New Member to {groupName}</DialogTitle>
         </DialogHeader>
 
         <Form {...form}>
@@ -121,14 +129,15 @@ export function NewMemberModal({ open, onOpenChange, groups }: NewMemberModalPro
               />
             </div>
 
+            {/* Sex and Group Role */}
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="gender"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Gender</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormLabel>Sex</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger data-testid="select-gender">
                           <SelectValue placeholder="Select gender" />
@@ -150,7 +159,7 @@ export function NewMemberModal({ open, onOpenChange, groups }: NewMemberModalPro
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Group Role</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger data-testid="select-group-role">
                           <SelectValue placeholder="Select role" />
@@ -169,32 +178,39 @@ export function NewMemberModal({ open, onOpenChange, groups }: NewMemberModalPro
               />
             </div>
 
-            <FormField
-              control={form.control}
-              name="groupId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Group</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger data-testid="select-group">
-                        <SelectValue placeholder="Select group" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {groups.map((group) => (
-                        <SelectItem key={group.id} value={group.id}>
-                          {group.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {/* Group Name (read-only) */}
+            <FormItem>
+              <FormLabel>Group Name</FormLabel>
+              <FormControl>
+                <Input
+                  value={groupName}
+                  readOnly
+                  className="bg-muted"
+                  data-testid="input-group-name-readonly"
+                />
+              </FormControl>
+            </FormItem>
 
+            {/* Contact Information */}
             <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="phone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Contact (Phone)</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        placeholder="Enter phone number"
+                        data-testid="input-phone"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
               <FormField
                 control={form.control}
                 name="email"
@@ -202,7 +218,36 @@ export function NewMemberModal({ open, onOpenChange, groups }: NewMemberModalPro
                   <FormItem>
                     <FormLabel>Email (Optional)</FormLabel>
                     <FormControl>
-                      <Input type="email" {...field} data-testid="input-email" />
+                      <Input
+                        type="email"
+                        {...field}
+                        placeholder="Enter email address"
+                        data-testid="input-email"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            {/* Financial Information */}
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="savingsBalance"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Current Saving</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        {...field}
+                        placeholder="0.00"
+                        data-testid="input-current-saving"
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -211,12 +256,19 @@ export function NewMemberModal({ open, onOpenChange, groups }: NewMemberModalPro
 
               <FormField
                 control={form.control}
-                name="phone"
+                name="currentLoan"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Phone (Optional)</FormLabel>
+                    <FormLabel>Current Loan (if any)</FormLabel>
                     <FormControl>
-                      <Input {...field} data-testid="input-phone" />
+                      <Input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        {...field}
+                        placeholder="0.00"
+                        data-testid="input-current-loan"
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -224,39 +276,82 @@ export function NewMemberModal({ open, onOpenChange, groups }: NewMemberModalPro
               />
             </div>
 
+            {/* Next of Kin */}
             <FormField
               control={form.control}
-              name="joinDate"
+              name="nextOfKin"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Join Date</FormLabel>
+                  <FormLabel>Next of Kin</FormLabel>
                   <FormControl>
-                    <Input type="date" {...field} data-testid="input-join-date" />
+                    <Input
+                      {...field}
+                      placeholder="Enter next of kin details"
+                      data-testid="input-next-of-kin"
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
 
+            {/* Address */}
             <FormField
               control={form.control}
               name="address"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Address (Optional)</FormLabel>
+                  <FormLabel>Address</FormLabel>
                   <FormControl>
-                    <Textarea {...field} data-testid="textarea-address" />
+                    <Textarea
+                      {...field}
+                      placeholder="Enter member's address"
+                      rows={2}
+                      data-testid="input-address"
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
 
-            <div className="flex justify-end space-x-2 pt-4">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)} data-testid="button-cancel">
+            {/* PIN */}
+            <FormField
+              control={form.control}
+              name="pin"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>PIN (4 digits)</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="password"
+                      maxLength={4}
+                      {...field}
+                      placeholder="Enter 4-digit PIN"
+                      data-testid="input-pin"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <div className="flex space-x-3 pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                className="flex-1"
+                onClick={() => onOpenChange(false)}
+                data-testid="button-cancel-member"
+              >
                 Cancel
               </Button>
-              <Button type="submit" disabled={mutation.isPending} data-testid="button-submit">
+              <Button
+                type="submit"
+                className="flex-1"
+                disabled={mutation.isPending}
+                data-testid="button-add-member"
+              >
                 {mutation.isPending ? "Adding..." : "Add Member"}
               </Button>
             </div>

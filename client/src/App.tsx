@@ -9,6 +9,7 @@ import NotFound from "@/pages/not-found";
 import Login from "@/pages/Login";
 import Dashboard from "@/pages/Dashboard";
 import Groups from "@/pages/Groups";
+import GroupDetails from "@/pages/GroupDetails";
 import Members from "@/pages/Members";
 import Transactions from "@/pages/Transactions";
 import Loans from "@/pages/Loans";
@@ -28,6 +29,7 @@ function Router() {
         <>
           <Route path="/" component={Dashboard} />
           <Route path="/groups" component={Groups} />
+          <Route path="/groups/:groupId" component={GroupDetails} />
           <Route path="/members" component={Members} />
           <Route path="/transactions" component={Transactions} />
           <Route path="/loans" component={Loans} />
