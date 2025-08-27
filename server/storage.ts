@@ -207,6 +207,11 @@ export class DatabaseStorage implements IStorage {
     return member;
   }
 
+  async getMemberByPhone(phone: string): Promise<Member | undefined> {
+    const [member] = await db.select().from(members).where(eq(members.phone, phone));
+    return member;
+  }
+
   async updateMember(id: string, updates: Partial<Member>): Promise<Member | undefined> {
     const [updatedMember] = await db
       .update(members)

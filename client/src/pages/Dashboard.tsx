@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatCurrency } from "@/utils/currency";
 import { Users, User, DollarSign, FileText, Calendar, Plus, Wallet, UserCheck, UserX } from "lucide-react";
+import { Link } from "wouter";
 
 export default function Dashboard() {
   const [selectedGroupId, setSelectedGroupId] = useState<string>("all");
@@ -95,6 +96,13 @@ export default function Dashboard() {
                   ))}
                 </SelectContent>
               </Select>
+
+              <Link href="/member-login">
+                <Button variant="outline">
+                  <User className="w-4 h-4 mr-2" />
+                  Member Login
+                </Button>
+              </Link>
 
               <Button 
                 onClick={() => setIsNewGroupModalOpen(true)}

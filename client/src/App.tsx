@@ -11,6 +11,8 @@ import Dashboard from "@/pages/Dashboard";
 import Groups from "@/pages/Groups";
 import GroupDetails from "@/pages/GroupDetails";
 import Members from "@/pages/Members";
+import MemberLogin from "@/pages/MemberLogin";
+import MemberDashboard from "@/pages/MemberDashboard";
 import Transactions from "@/pages/Transactions";
 import Loans from "@/pages/Loans";
 import LoanCalculator from "@/pages/LoanCalculator";
@@ -23,6 +25,10 @@ function Router() {
 
   return (
     <Switch>
+      {/* Member login routes - accessible without authentication */}
+      <Route path="/member-login" component={MemberLogin} />
+      <Route path="/member-dashboard/:memberId" component={MemberDashboard} />
+      
       {isLoading || !isAuthenticated ? (
         <Route component={Login} />
       ) : (

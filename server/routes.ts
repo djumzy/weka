@@ -148,6 +148,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Member authentication endpoints
+  app.post('/api/members/login', async (req, res) => {
+    try {
+      const { phone, pin } = req.body;
+      
+      if (!phone || !pin) {
+        return res.status(400).json({ message: "Phone and PIN are required" });
+      }
+      
+      const member = await storage.getMemberByPhone(phone);
+      if (!member) {
+        return res.status(401).json({ message: "Invalid phone number or PIN" });
+      }
+      
+      // Simple PIN verification (in production, use proper hashing)
+      if (member.pin !== pin) {
+        return res.status(401).json({ message: "Invalid phone number or PIN" });
+      }
+      
+      // Get group stats for the member
+      const groupStats = await storage.getGroupStats(member.groupId);
+      
+      res.json({
+        member: {
+          id: member.id,
+          firstName: member.firstName,
+          lastName: member.lastName,
+          groupRole: member.groupRole,
+          groupId: member.groupId,
+          totalShares: member.totalShares,
+          savingsBalance: member.savingsBalance,
+          welfareBalance: member.welfareBalance,
+          currentLoan: member.currentLoan
+        },
+        groupStats
+      });
+    } catch (error) {
+      console.error("Error during member login:", error);
+      res.status(500).json({ message: "Login failed" });
+    }
+  });
+
+  // Get member dashboard info
+  app.get('/api/members/:id/dashboard', async (req, res) => {
+    try {
+      const { id } = req.params;
+      const member = await storage.getMember(id);
+      
+      if (!member) {
+        return res.status(404).json({ message: "Member not found" });
+      }
+      
+      const groupStats = await storage.getGroupStats(member.groupId);
+      const group = await storage.getGroup(member.groupId);
+      
+      res.json({
+        member,
+        group,
+        groupStats
+      });
+    } catch (error) {
+      console.error("Error fetching member dashboard:", error);
+      res.status(500).json({ message: "Failed to fetch member dashboard" });
+    }
+  });
+
   // Group routes
   app.get('/api/groups', isAuthenticated, async (req, res) => {
     try {
