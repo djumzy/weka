@@ -6,13 +6,13 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/hooks/useTheme";
 import { useAuth } from "@/hooks/useAuth";
 import NotFound from "@/pages/not-found";
-import Login from "@/pages/Login";
+import UnifiedLogin from "@/pages/UnifiedLogin";
 import Dashboard from "@/pages/Dashboard";
 import Groups from "@/pages/Groups";
 import GroupDetails from "@/pages/GroupDetails";
 import Members from "@/pages/Members";
-import MemberLogin from "@/pages/MemberLogin";
 import MemberDashboard from "@/pages/MemberDashboard";
+import FieldDashboard from "@/pages/FieldDashboard";
 import Transactions from "@/pages/Transactions";
 import Loans from "@/pages/Loans";
 import LoanCalculator from "@/pages/LoanCalculator";
@@ -25,12 +25,17 @@ function Router() {
 
   return (
     <Switch>
-      {/* Member login routes - accessible without authentication */}
-      <Route path="/member-login" component={MemberLogin} />
+      {/* Unified login page */}
+      <Route path="/login" component={UnifiedLogin} />
+      
+      {/* Member dashboard - accessible with member session */}
       <Route path="/member-dashboard/:memberId" component={MemberDashboard} />
       
+      {/* Field staff dashboard */}
+      <Route path="/field-dashboard" component={FieldDashboard} />
+      
       {isLoading || !isAuthenticated ? (
-        <Route component={Login} />
+        <Route component={UnifiedLogin} />
       ) : (
         <>
           <Route path="/" component={Dashboard} />

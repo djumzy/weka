@@ -148,8 +148,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Member authentication endpoints
-  app.post('/api/members/login', async (req, res) => {
+  // Unified authentication endpoints
+  app.post('/api/auth/member-login', async (req, res) => {
     try {
       const { phone, pin } = req.body;
       
@@ -171,6 +171,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const groupStats = await storage.getGroupStats(member.groupId);
       
       res.json({
+        userType: 'member',
         member: {
           id: member.id,
           firstName: member.firstName,
@@ -186,6 +187,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       console.error("Error during member login:", error);
+      res.status(500).json({ message: "Login failed" });
+    }
+  });
+
+  // Staff login endpoint
+  app.post('/api/auth/staff-login', async (req, res) => {
+    try {
+      const { userId, phone, pin, barcode } = req.body;
+      
+      if (!userId || !phone || !pin) {
+        return res.status(400).json({ message: "User ID, phone, and PIN are required" });
+      }
+      
+      // Find user by userId and phone
+      const user = await storage.getUserByUserIdAndPhone(userId, phone);
+      if (!user) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+      
+      // Verify PIN (in production, use proper hashing)
+      if (user.pin !== pin) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+      
+      // Optional barcode verification (if provided)
+      if (barcode && user.barcode && user.barcode !== barcode) {
+        return res.status(401).json({ message: "Invalid barcode" });
+      }
+      
+      // Update last login
+      await storage.updateUser(user.id, { lastLogin: new Date() });
+      
+      res.json({
+        userType: 'staff',
+        user: {
+          id: user.id,
+          userId: user.userId,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          role: user.role,
+          location: user.location,
+          phone: user.phone,
+          email: user.email
+        }
+      });
+    } catch (error) {
+      console.error("Error during staff login:", error);
       res.status(500).json({ message: "Login failed" });
     }
   });

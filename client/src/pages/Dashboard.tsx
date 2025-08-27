@@ -97,10 +97,10 @@ export default function Dashboard() {
                 </SelectContent>
               </Select>
 
-              <Link href="/member-login">
+              <Link href="/login">
                 <Button variant="outline">
                   <User className="w-4 h-4 mr-2" />
-                  Member Login
+                  Unified Login
                 </Button>
               </Link>
 
