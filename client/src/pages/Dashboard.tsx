@@ -105,7 +105,7 @@ export default function Dashboard() {
         </header>
 
         {/* Dashboard Content */}
-        <div className="p-6 overflow-y-auto h-[calc(100vh-88px)]">
+        <div className="p-6 overflow-y-auto max-h-[calc(100vh-88px)]">
           {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
             <StatsCard

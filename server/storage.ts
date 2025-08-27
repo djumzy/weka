@@ -396,8 +396,9 @@ export class DatabaseStorage implements IStorage {
       .where(eq(groups.isActive, true));
     const [loanCount] = await db.select({ count: count() }).from(loans)
       .where(eq(loans.status, 'active'));
-    const [totalLoansSum] = await db.select({ sum: sum(loans.loanAmount) }).from(loans);
-    const [totalInterestSum] = await db.select({ sum: sum(loans.interestAmount) }).from(loans);
+    const allLoans = await db.select().from(loans);
+    const totalLoansGiven = allLoans.reduce((total, loan) => total + parseFloat(loan.loanAmount || '0'), 0);
+    const totalInterest = allLoans.reduce((total, loan) => total + parseFloat(loan.interestAmount || '0'), 0);
 
     return {
       totalGroups: groupCount.count,
@@ -407,8 +408,8 @@ export class DatabaseStorage implements IStorage {
       totalSavings: parseFloat(savingsSum.sum || '0'),
       totalCashInBox: parseFloat(cashSum.sum || '0'),
       activeLoans: loanCount.count,
-      totalLoansGiven: parseFloat(totalLoansSum.sum || '0'),
-      totalInterest: parseFloat(totalInterestSum.sum || '0'),
+      totalLoansGiven: totalLoansGiven,
+      totalInterest: totalInterest,
     };
   }
 
