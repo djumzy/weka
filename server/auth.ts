@@ -153,31 +153,46 @@ export function setupAuth(app: Express) {
     });
   });
 
-  // Get current user endpoint
+  // Get current user endpoint - handles both staff and member sessions
   app.get("/api/auth/user", async (req: Request, res: Response) => {
     const session = req.session as any;
     
     console.log('Auth check - session:', { 
       sessionId: req.sessionID,
       userId: session.userId, 
+      memberId: session.memberId,
       userRole: session.userRole,
       sessionKeys: Object.keys(session || {})
     });
     
-    if (!session.userId) {
-      console.log('No userId in session - unauthorized');
-      return res.status(401).json({ message: "Unauthorized" });
-    }
-
     try {
-      const user = await storage.getUser(session.userId);
-      if (!user || !user.isActive) {
-        return res.status(401).json({ message: "Unauthorized" });
+      // Handle staff authentication
+      if (session.userId) {
+        const user = await storage.getUser(session.userId);
+        if (!user || !user.isActive) {
+          return res.status(401).json({ message: "Unauthorized" });
+        }
+        // Return staff user data (without PIN)
+        const { pin: _, ...userWithoutPin } = user;
+        res.json({ userType: 'staff', user: userWithoutPin });
+        return;
       }
-
-      // Return user data (without PIN)
-      const { pin: _, ...userWithoutPin } = user;
-      res.json(userWithoutPin);
+      
+      // Handle member authentication
+      if (session.memberId && session.userRole === 'member') {
+        const member = await storage.getMember(session.memberId);
+        if (!member || !member.isActive) {
+          return res.status(401).json({ message: "Unauthorized" });
+        }
+        // Return member data (without PIN)
+        const { pin: _, ...memberWithoutPin } = member;
+        res.json({ userType: 'member', member: memberWithoutPin });
+        return;
+      }
+      
+      console.log('No valid session found - unauthorized');
+      return res.status(401).json({ message: "Unauthorized" });
+      
     } catch (error) {
       console.error("Auth user error:", error);
       res.status(500).json({ message: "Failed to get user" });
@@ -185,19 +200,25 @@ export function setupAuth(app: Express) {
   });
 }
 
-// Authentication middleware
+// Authentication middleware - handles both staff and member authentication
 export function isAuthenticated(req: Request, res: Response, next: NextFunction) {
   const session = req.session as any;
   
-  if (!session.userId) {
-    return res.status(401).json({ message: "Unauthorized" });
+  // Check for staff authentication (userId-based)
+  if (session.userId) {
+    (req as any).userId = session.userId;
+    (req as any).userRole = session.userRole;
+    return next();
+  }
+  
+  // Check for member authentication (memberId-based)
+  if (session.memberId && session.userRole === 'member') {
+    (req as any).memberId = session.memberId;
+    (req as any).userRole = session.userRole;
+    return next();
   }
 
-  // Attach user info to request for easy access
-  (req as any).userId = session.userId;
-  (req as any).userRole = session.userRole;
-  
-  next();
+  return res.status(401).json({ message: "Unauthorized" });
 }
 
 // Role-based authorization middleware

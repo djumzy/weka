@@ -40,14 +40,14 @@ export interface IStorage {
   createGroup(group: InsertGroup): Promise<Group>;
   getGroups(): Promise<Group[]>;
   getGroup(id: string): Promise<Group | undefined>;
-  updateGroup(id: string, updates: Partial<InsertGroup>): Promise<Group | undefined>;
+  updateGroup(id: string, updates: Partial<Group>): Promise<Group | undefined>;
   deleteGroup(id: string): Promise<boolean>;
 
   // Member operations
   createMember(member: InsertMember): Promise<Member>;
   getMembers(groupId?: string): Promise<Member[]>;
   getMember(id: string): Promise<Member | undefined>;
-  updateMember(id: string, updates: Partial<InsertMember>): Promise<Member | undefined>;
+  updateMember(id: string, updates: Partial<Member>): Promise<Member | undefined>;
   deleteMember(id: string): Promise<boolean>;
 
   // Transaction operations
@@ -65,7 +65,7 @@ export interface IStorage {
   createMeeting(meeting: InsertMeeting): Promise<Meeting>;
   getMeetings(groupId?: string): Promise<Meeting[]>;
   getMeeting(id: string): Promise<Meeting | undefined>;
-  updateMeeting(id: string, updates: Partial<InsertMeeting>): Promise<Meeting | undefined>;
+  updateMeeting(id: string, updates: Partial<Meeting>): Promise<Meeting | undefined>;
 
   // Cashbox operations
   createCashboxEntry(entry: InsertCashbox): Promise<Cashbox>;
@@ -188,7 +188,7 @@ export class DatabaseStorage implements IStorage {
     return group;
   }
 
-  async updateGroup(id: string, updates: Partial<InsertGroup>): Promise<Group | undefined> {
+  async updateGroup(id: string, updates: Partial<Group>): Promise<Group | undefined> {
     const [updatedGroup] = await db
       .update(groups)
       .set({ ...updates, updatedAt: new Date() })
@@ -360,7 +360,7 @@ export class DatabaseStorage implements IStorage {
     return meeting;
   }
 
-  async updateMeeting(id: string, updates: Partial<InsertMeeting>): Promise<Meeting | undefined> {
+  async updateMeeting(id: string, updates: Partial<Meeting>): Promise<Meeting | undefined> {
     const [updatedMeeting] = await db
       .update(meetings)
       .set({ ...updates, updatedAt: new Date() })
@@ -373,10 +373,7 @@ export class DatabaseStorage implements IStorage {
   async createCashboxEntry(entry: InsertCashbox): Promise<Cashbox> {
     const [newEntry] = await db.insert(cashbox).values(entry).returning();
     
-    // Update group's available cash
-    const balance = await this.getCashboxBalance(entry.groupId);
-    await this.updateGroup(entry.groupId, { availableCash: balance.toString() });
-    
+    // Note: availableCash will be calculated dynamically, no need to update here
     return newEntry;
   }
 

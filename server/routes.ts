@@ -9,13 +9,14 @@ import {
   insertLoanSchema,
   insertMeetingSchema,
   insertUserSchema,
-  insertCashboxSchema
+  insertCashboxSchema,
+  type InsertUser
 } from "@shared/schema";
 import { generateUserId, hashPin, comparePin } from "./auth";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Auth middleware
+  // Auth middleware - using only internal auth system
   setupAuth(app);
 
   // Initialize system with demo admin user
@@ -30,14 +31,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Create demo admin user
-      const adminUser = {
+      const adminUser: InsertUser = {
         userId: generateUserId(),
         firstName: 'System',
         lastName: 'Administrator',
         phone: '+1234567890',
         email: 'admin@weka.com',
         pin: await hashPin('123456'),
-        role: 'admin' as const,
+        role: 'admin',
         isActive: true,
         location: 'Main Office',
       };
