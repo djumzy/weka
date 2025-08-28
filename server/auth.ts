@@ -28,7 +28,7 @@ async function hashPin(pin: string): Promise<string> {
 }
 
 // Compare provided PIN with stored hash
-async function comparePin(supplied: string, stored: string): Promise<boolean> {
+export async function comparePin(supplied: string, stored: string): Promise<boolean> {
   const [hashed, salt] = stored.split(".");
   const hashedBuf = Buffer.from(hashed, "hex");
   const suppliedBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;

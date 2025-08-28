@@ -11,7 +11,7 @@ import {
   insertUserSchema,
   insertCashboxSchema
 } from "@shared/schema";
-import { generateUserId, hashPin } from "./auth";
+import { generateUserId, hashPin, comparePin } from "./auth";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -216,8 +216,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Invalid credentials" });
       }
       
-      // Verify PIN (in production, use proper hashing)
-      if (user.pin !== pin) {
+      // Check if user is active
+      if (!user.isActive) {
+        return res.status(401).json({ message: "Account is deactivated" });
+      }
+      
+      // Verify PIN using proper hashing verification
+      const isValidPin = await comparePin(pin, user.pin);
+      if (!isValidPin) {
         return res.status(401).json({ message: "Invalid credentials" });
       }
       
