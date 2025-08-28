@@ -67,10 +67,22 @@ export default function SubmitSavingsPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedGroup || !selectedMember || !savingsAmount || !welfareAmount) {
+    if (!selectedGroup || !selectedMember || !savingsAmount) {
       toast({
         title: "Missing Information",
-        description: "Please fill all fields",
+        description: "Please select group, member and enter savings amount",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const savings = parseFloat(savingsAmount);
+    const welfare = parseFloat(welfareAmount || '0');
+
+    if (savings <= 0) {
+      toast({
+        title: "Invalid Amount",
+        description: "Savings amount must be greater than 0",
         variant: "destructive",
       });
       return;
@@ -79,8 +91,8 @@ export default function SubmitSavingsPage() {
     submitSavingsMutation.mutate({
       groupId: selectedGroup,
       memberId: selectedMember,
-      savingsAmount: parseFloat(savingsAmount),
-      welfareAmount: parseFloat(welfareAmount)
+      savingsAmount: savings,
+      welfareAmount: welfare
     });
   };
 
@@ -153,7 +165,7 @@ export default function SubmitSavingsPage() {
                   <Input
                     id="welfare-amount"
                     type="number"
-                    placeholder="Enter welfare amount"
+                    placeholder="Enter welfare amount (optional)"
                     value={welfareAmount}
                     onChange={(e) => setWelfareAmount(e.target.value)}
                     data-testid="input-welfare-amount"

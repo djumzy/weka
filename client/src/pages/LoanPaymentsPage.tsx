@@ -75,10 +75,30 @@ export default function LoanPaymentsPage() {
       return;
     }
 
+    const amount = parseFloat(paymentAmount);
+    if (amount <= 0) {
+      toast({
+        title: "Invalid Amount",
+        description: "Payment amount must be greater than 0",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const memberCurrentLoan = parseFloat(selectedMemberData?.currentLoan || '0');
+    if (amount > memberCurrentLoan) {
+      toast({
+        title: "Payment Too High",
+        description: `Payment cannot exceed current loan balance of ${formatCurrency(memberCurrentLoan)}`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     paymentMutation.mutate({
       groupId: selectedGroup,
       memberId: selectedMember,
-      amount: parseFloat(paymentAmount)
+      amount: amount
     });
   };
 
