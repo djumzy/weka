@@ -298,32 +298,30 @@ export default function MemberDashboard() {
         </Card>
       )}
 
-      {/* Transaction History for Regular Members */}
-      {member.groupRole === 'member' && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Clock className="h-5 w-5" />
-              My Transaction History
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <TransactionHistoryWidget 
-              groupId={member.groupId} 
-              memberId={member.id}
-              userRole={member.groupRole}
-              isLeader={false}
-            />
-          </CardContent>
-        </Card>
-      )}
+      {/* Transaction History */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Clock className="h-5 w-5" />
+            {isLeadershipRole ? 'Group Transaction History' : 'My Transaction History'}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <TransactionHistoryWidget 
+            groupId={member.groupId} 
+            memberId={isLeadershipRole ? undefined : member.id}
+            userRole={member.groupRole}
+            isLeader={isLeadershipRole}
+          />
+        </CardContent>
+      </Card>
     </div>
   );
 
   if (isLeadershipRole) {
     return (
       <div className="min-h-screen flex bg-background">
-        <AdminSidebar />
+        <AdminSidebar userRole={member.groupRole} />
         <main className="flex-1 overflow-auto">
           <div className="container mx-auto p-6">
             {dashboardContent}
@@ -507,7 +505,7 @@ function TransactionHistoryWidget({
   isLeader 
 }: { 
   groupId: string; 
-  memberId: string;
+  memberId?: string;
   userRole: string;
   isLeader: boolean;
 }) {
