@@ -125,6 +125,18 @@ export async function setupAuth(app: Express) {
       );
     });
   });
+
+  // Add endpoint to clear sessions - for handling session conflicts
+  app.post("/api/clear-session", (req, res) => {
+    req.session.destroy((err) => {
+      if (err) {
+        console.error("Session destruction error:", err);
+        return res.status(500).json({ message: "Failed to clear session" });
+      }
+      res.clearCookie('connect.sid'); // Clear the session cookie
+      res.json({ message: "Session cleared" });
+    });
+  });
 }
 
 export const isAuthenticated: RequestHandler = async (req, res, next) => {
