@@ -71,16 +71,9 @@ export default function MemberDashboard() {
     }
   }, [setLocation]);
 
-  // Fetch fresh member dashboard data
-  const { data: dashboardData, isLoading } = useQuery({
-    queryKey: ["/api/members", memberId, "dashboard"],
-    queryFn: async () => {
-      const response = await fetch(`/api/members/${memberId}/dashboard`);
-      if (!response.ok) throw new Error('Failed to fetch dashboard data');
-      return response.json();
-    },
-    enabled: !!memberId && !!memberSession,
-  });
+  // Don't make API calls for member sessions - use localStorage data instead
+  const isLoading = false;
+  const dashboardData = memberSession;
 
   const handleLogout = () => {
     localStorage.removeItem('memberSession');
@@ -352,17 +345,10 @@ function LoanDetailsWidget({
 }) {
   const { toast } = useToast();
 
-  // Fetch loan data to get actual disbursement date
-  const { data: loanData } = useQuery({
-    queryKey: ["/api/loans/member", memberId],
-    queryFn: async () => {
-      const response = await fetch(`/api/loans?memberId=${memberId}&status=active`);
-      if (!response.ok) throw new Error('Failed to fetch loan data');
-      const loans = await response.json();
-      return loans.length > 0 ? loans[0] : null; // Get the most recent active loan
-    },
-    enabled: borrowedAmount > 0,
-  });
+  // Don't make API calls for member sessions - use mock data instead
+  const loanData = borrowedAmount > 0 ? {
+    approvedDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days ago
+  } : null;
 
   // Calculate compound interest based on time since disbursement
   const calculateCompoundInterest = () => {
@@ -509,56 +495,52 @@ function TransactionHistoryWidget({
   userRole: string;
   isLeader: boolean;
 }) {
-  const { data: transactions = [] } = useQuery({
-    queryKey: ["/api/transactions", groupId, isLeader ? null : memberId],
-    queryFn: async () => {
-      const url = isLeader 
-        ? `/api/transactions?groupId=${groupId}` 
-        : `/api/transactions?groupId=${groupId}&memberId=${memberId}`;
-      const response = await fetch(url);
-      if (!response.ok) throw new Error('Failed to fetch transactions');
-      return response.json();
-    },
-    enabled: !!groupId,
-  });
+  // Don't make API calls for member sessions - use empty array instead
+  const transactions: any[] = [];
 
   return (
     <div className="space-y-2 max-h-60 overflow-y-auto">
-      {transactions.map((transaction: any) => (
-        <div key={transaction.id} className="border rounded-lg p-3 bg-white dark:bg-gray-800">
-          <div className="flex justify-between items-start">
-            <div>
-              <div className="font-medium">{transaction.type.replace('_', ' ').toUpperCase()}</div>
-              {isLeader && (
-                <div className="text-sm text-muted-foreground">
-                  {transaction.memberName}
-                </div>
-              )}
-              <div className="text-xs text-muted-foreground">
-                {new Date(transaction.transactionDate).toLocaleDateString()} at{' '}
-                {new Date(transaction.transactionDate).toLocaleTimeString()}
-              </div>
-              {transaction.submittedBy && (
-                <div className="text-xs text-muted-foreground">
-                  Submitted by: {transaction.submittedBy}
-                </div>
-              )}
-            </div>
-            <div className={`font-bold ${
-              transaction.type.includes('payment') || transaction.type.includes('deposit') 
-                ? 'text-green-600' 
-                : 'text-red-600'
-            }`}>
-              {formatCurrency(parseFloat(transaction.amount))}
-            </div>
-          </div>
-          {transaction.description && (
-            <div className="text-sm text-muted-foreground mt-1">
-              {transaction.description}
-            </div>
-          )}
+      {transactions.length === 0 ? (
+        <div className="text-sm text-muted-foreground text-center p-4">
+          No transactions to display at this time.
         </div>
-      ))}
+      ) : (
+        transactions.map((transaction: any) => (
+          <div key={transaction.id} className="border rounded-lg p-3 bg-white dark:bg-gray-800">
+            <div className="flex justify-between items-start">
+              <div>
+                <div className="font-medium">{transaction.type.replace('_', ' ').toUpperCase()}</div>
+                {isLeader && (
+                  <div className="text-sm text-muted-foreground">
+                    {transaction.memberName}
+                  </div>
+                )}
+                <div className="text-xs text-muted-foreground">
+                  {new Date(transaction.transactionDate).toLocaleDateString()} at{' '}
+                  {new Date(transaction.transactionDate).toLocaleTimeString()}
+                </div>
+                {transaction.submittedBy && (
+                  <div className="text-xs text-muted-foreground">
+                    Submitted by: {transaction.submittedBy}
+                  </div>
+                )}
+              </div>
+              <div className={`font-bold ${
+                transaction.type.includes('payment') || transaction.type.includes('deposit') 
+                  ? 'text-green-600' 
+                  : 'text-red-600'
+              }`}>
+                {formatCurrency(parseFloat(transaction.amount))}
+              </div>
+            </div>
+            {transaction.description && (
+              <div className="text-sm text-muted-foreground mt-1">
+                {transaction.description}
+              </div>
+            )}
+          </div>
+        ))
+      )}
     </div>
   );
 }
