@@ -24,6 +24,8 @@ export function useAuth() {
     retry: false,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
+    refetchInterval: false,
+    staleTime: Infinity,
     enabled: !memberSession, // Don't make API calls if member session exists
   });
 

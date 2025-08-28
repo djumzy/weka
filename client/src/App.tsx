@@ -48,7 +48,7 @@ function Router() {
   const hasNavigationAccess = isAuthenticated || isLeadershipRole;
 
   // If loading or no access, show login page - don't trigger API calls
-  if (isLoading) {
+  if (isLoading && !memberSession) {
     return <div>Loading...</div>;
   }
 
