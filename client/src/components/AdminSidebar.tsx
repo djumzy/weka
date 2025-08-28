@@ -21,18 +21,23 @@ import dreamersLogo from "@assets/updated logo the dreamers_1756291084041.png";
 
 // Navigation items with role-based access control
 const navigationItems = [
-  { href: "/", icon: Home, label: "Dashboard", roles: ['chairman', 'secretary', 'finance', 'member'] },
-  { href: "/groups", icon: Users, label: "Groups", roles: ['chairman', 'secretary', 'finance'] },
-  { href: "/members", icon: User, label: "Members", roles: ['chairman', 'secretary', 'finance'] },
-  { href: "/transactions", icon: DollarSign, label: "Transactions", roles: ['chairman', 'secretary', 'finance'] },
-  { href: "/loans", icon: FileText, label: "Loans", roles: ['chairman', 'secretary', 'finance'] },
-  { href: "/loan-calculator", icon: Calculator, label: "Loan Calculator", roles: ['chairman', 'secretary', 'finance'] },
+  // Dashboard available to all
+  { href: "/", icon: Home, label: "Dashboard", roles: ['chairman', 'secretary', 'finance', 'member', 'admin'] },
+  
+  // Group-level navigation for leadership roles (chairman, secretary, finance)
+  { href: "/members", icon: User, label: "Group Members", roles: ['chairman', 'secretary', 'finance'] },
   { href: "/submit-savings", icon: PlusCircle, label: "Submit Savings", roles: ['chairman', 'secretary', 'finance'] },
-  { href: "/loan-payments", icon: MinusCircle, label: "Loan Payments", roles: ['chairman', 'secretary', 'finance'] },
   { href: "/loan-submission", icon: FileText, label: "Loan Submission", roles: ['chairman', 'secretary', 'finance'] },
-  { href: "/meetings", icon: Calendar, label: "Meetings", roles: ['chairman', 'secretary', 'finance'] },
-  { href: "/user-management", icon: UserPlus, label: "User Management", roles: ['chairman', 'secretary', 'finance'] },
-  { href: "/reports", icon: BarChart3, label: "Reports", roles: ['chairman', 'secretary', 'finance'] },
+  { href: "/loan-payments", icon: MinusCircle, label: "Loan Payments", roles: ['chairman', 'secretary', 'finance'] },
+  
+  // Admin-only navigation for system administrators
+  { href: "/groups", icon: Users, label: "All Groups", roles: ['admin'] },
+  { href: "/transactions", icon: DollarSign, label: "All Transactions", roles: ['admin'] },
+  { href: "/loans", icon: FileText, label: "All Loans", roles: ['admin'] },
+  { href: "/loan-calculator", icon: Calculator, label: "Loan Calculator", roles: ['admin'] },
+  { href: "/meetings", icon: Calendar, label: "All Meetings", roles: ['admin'] },
+  { href: "/user-management", icon: UserPlus, label: "User Management", roles: ['admin'] },
+  { href: "/reports", icon: BarChart3, label: "System Reports", roles: ['admin'] },
 ];
 
 interface AdminSidebarProps {

@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AdminSidebar } from "@/components/AdminSidebar";
 import { NewMemberModal } from "@/components/modals/NewMemberModal";
 import { Button } from "@/components/ui/button";
@@ -9,18 +9,50 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Search, User } from "lucide-react";
 import { format } from "date-fns";
 import { formatCurrency } from "@/utils/currency";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function Members() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedGroupId, setSelectedGroupId] = useState<string>("all");
   const [isNewMemberModalOpen, setIsNewMemberModalOpen] = useState(false);
+  const [memberSession, setMemberSession] = useState<any>(null);
+  const { user } = useAuth();
 
+  // Load member session for group context
+  useEffect(() => {
+    const sessionData = localStorage.getItem('memberSession');
+    if (sessionData) {
+      const session = JSON.parse(sessionData);
+      setMemberSession(session);
+    }
+  }, []);
+
+  // Determine if this is a group leader or admin
+  const isAdmin = !!user;
+  const isGroupLeader = memberSession && ['chairman', 'secretary', 'finance'].includes(memberSession.member?.groupRole);
+  const userGroupId = memberSession?.member?.groupId;
+
+  // For group leaders, fetch only their group members; for admins, fetch all members
   const { data: members = [], isLoading: membersLoading } = useQuery({
-    queryKey: ["/api/members"],
+    queryKey: isGroupLeader ? ["/api/groups", userGroupId, "members"] : ["/api/members"],
+    queryFn: async () => {
+      if (isGroupLeader && userGroupId) {
+        const response = await fetch(`/api/groups/${userGroupId}/members`);
+        if (!response.ok) throw new Error('Failed to fetch group members');
+        return response.json();
+      } else {
+        // For admins or fallback
+        const response = await fetch('/api/members');
+        if (!response.ok) throw new Error('Failed to fetch members');
+        return response.json();
+      }
+    },
+    enabled: isAdmin || (isGroupLeader && !!userGroupId),
   });
 
   const { data: groups = [], isLoading: groupsLoading } = useQuery({
     queryKey: ["/api/groups"],
+    enabled: !isGroupLeader, // Only fetch groups for admins
   });
 
   const getGroupName = (groupId: string) => {
@@ -34,15 +66,17 @@ export default function Members() {
       member.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       member.phone?.includes(searchTerm);
     
-    const matchesGroup = selectedGroupId === "all" || member.groupId === selectedGroupId;
+    // For group leaders, don't filter by group (already filtered by API)
+    // For admins, filter by selected group
+    const matchesGroup = isGroupLeader || selectedGroupId === "all" || member.groupId === selectedGroupId;
     
     return matchesSearch && matchesGroup;
   });
 
-  if (membersLoading || groupsLoading) {
+  if (membersLoading || (!isGroupLeader && groupsLoading)) {
     return (
       <div className="min-h-screen flex">
-        <AdminSidebar />
+        <AdminSidebar userRole={memberSession?.member?.groupRole || 'admin'} />
         <main className="flex-1 p-6">
           <div className="animate-pulse space-y-6">
             <div className="h-8 bg-muted rounded w-1/3"></div>
@@ -59,15 +93,19 @@ export default function Members() {
 
   return (
     <div className="min-h-screen flex" data-testid="members-page">
-      <AdminSidebar />
+      <AdminSidebar userRole={memberSession?.member?.groupRole || 'admin'} />
 
       <main className="flex-1 overflow-hidden">
         {/* Header */}
         <header className="bg-card border-b border-border px-6 py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-2xl font-bold text-foreground" data-testid="page-title">Members</h2>
-              <p className="text-muted-foreground">Manage all group members</p>
+              <h2 className="text-2xl font-bold text-foreground" data-testid="page-title">
+                {isGroupLeader ? 'Group Members' : 'All Members'}
+              </h2>
+              <p className="text-muted-foreground">
+                {isGroupLeader ? 'Manage members in your group' : 'Manage all group members'}
+              </p>
             </div>
             <Button onClick={() => setIsNewMemberModalOpen(true)} data-testid="button-add-member">
               <Plus className="w-4 h-4 mr-2" />
@@ -90,19 +128,22 @@ export default function Members() {
                 data-testid="input-search-members"
               />
             </div>
-            <Select value={selectedGroupId} onValueChange={setSelectedGroupId}>
-              <SelectTrigger className="w-48" data-testid="select-group-filter">
-                <SelectValue placeholder="Filter by group" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Groups</SelectItem>
-                {groups.map((group: any) => (
-                  <SelectItem key={group.id} value={group.id}>
-                    {group.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {/* Only show group filter for admins */}
+            {!isGroupLeader && (
+              <Select value={selectedGroupId} onValueChange={setSelectedGroupId}>
+                <SelectTrigger className="w-48" data-testid="select-group-filter">
+                  <SelectValue placeholder="Filter by group" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Groups</SelectItem>
+                  {(groups as any[]).map((group: any) => (
+                    <SelectItem key={group.id} value={group.id}>
+                      {group.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
 
           {/* Members Table */}
@@ -223,7 +264,6 @@ export default function Members() {
       <NewMemberModal 
         open={isNewMemberModalOpen} 
         onOpenChange={setIsNewMemberModalOpen}
-        groups={groups}
       />
     </div>
   );
