@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/hooks/useTheme";
 import { useAuth } from "@/hooks/useAuth";
+import { useState, useEffect } from "react";
 import NotFound from "@/pages/not-found";
 import Login from "@/pages/Login";
 import Dashboard from "@/pages/Dashboard";
@@ -25,6 +26,20 @@ import Reports from "@/pages/Reports";
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
+  const [memberSession, setMemberSession] = useState<any>(null);
+
+  // Load member session
+  useEffect(() => {
+    const sessionData = localStorage.getItem('memberSession');
+    if (sessionData) {
+      const session = JSON.parse(sessionData);
+      setMemberSession(session);
+    }
+  }, []);
+
+  // Check if user has leadership role that can access navigation
+  const isLeadershipRole = memberSession && ['chairman', 'secretary', 'finance'].includes(memberSession.member?.groupRole);
+  const hasNavigationAccess = isAuthenticated || isLeadershipRole;
 
   return (
     <Switch>
@@ -37,23 +52,30 @@ function Router() {
       {/* Field staff dashboard */}
       <Route path="/field-dashboard" component={FieldDashboard} />
       
-      {isLoading || !isAuthenticated ? (
+      {isLoading || !hasNavigationAccess ? (
         <Route component={Login} />
       ) : (
         <>
-          <Route path="/" component={Dashboard} />
-          <Route path="/groups" component={Groups} />
-          <Route path="/groups/:groupId" component={GroupDetails} />
+          {/* Routes accessible to both admins and group leaders */}
+          <Route path="/" component={isAuthenticated ? Dashboard : () => <MemberDashboard />} />
           <Route path="/members" component={Members} />
-          <Route path="/transactions" component={Transactions} />
-          <Route path="/loans" component={Loans} />
-          <Route path="/loan-calculator" component={LoanCalculator} />
           <Route path="/submit-savings" component={SubmitSavingsPage} />
           <Route path="/loan-payments" component={LoanPaymentsPage} />
           <Route path="/loan-submission" component={LoanSubmissionPage} />
-          <Route path="/meetings" component={Meetings} />
-          <Route path="/user-management" component={UserManagement} />
-          <Route path="/reports" component={Reports} />
+          
+          {/* Admin-only routes */}
+          {isAuthenticated && (
+            <>
+              <Route path="/groups" component={Groups} />
+              <Route path="/groups/:groupId" component={GroupDetails} />
+              <Route path="/transactions" component={Transactions} />
+              <Route path="/loans" component={Loans} />
+              <Route path="/loan-calculator" component={LoanCalculator} />
+              <Route path="/meetings" component={Meetings} />
+              <Route path="/user-management" component={UserManagement} />
+              <Route path="/reports" component={Reports} />
+            </>
+          )}
         </>
       )}
     </Switch>
