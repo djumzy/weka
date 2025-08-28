@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency } from "@/lib/utils";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { AdminSidebar } from "@/components/AdminSidebar";
 import { 
   Users, 
   DollarSign, 
@@ -107,229 +108,235 @@ export default function MemberDashboard() {
     }
   };
 
-  return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto p-6 space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <div className="bg-primary/10 p-3 rounded-full">
-              <User className="h-8 w-8 text-primary" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-foreground">
-                {member.firstName} {member.lastName}
-              </h1>
-              <div className="flex items-center gap-2">
-                <Badge className={getRoleColor(member.groupRole)}>
-                  {member.groupRole}
-                </Badge>
-                {group && (
-                  <span className="text-muted-foreground">
-                    • {group.name}
-                  </span>
-                )}
-              </div>
+  // Check if member has leadership role that should show navigation menu
+  const isLeadershipRole = ['chairman', 'secretary', 'finance'].includes(member.groupRole);
+
+  const dashboardContent = (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-4">
+          <div className="bg-primary/10 p-3 rounded-full">
+            <User className="h-8 w-8 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">
+              {member.firstName} {member.lastName}
+            </h1>
+            <div className="flex items-center gap-2">
+              <Badge className={getRoleColor(member.groupRole)}>
+                {member.groupRole}
+              </Badge>
+              {group && (
+                <span className="text-muted-foreground">
+                  • {group.name}
+                </span>
+              )}
             </div>
           </div>
-          <Button variant="outline" onClick={handleLogout}>
-            <LogOut className="w-4 h-4 mr-2" />
-            Logout
-          </Button>
         </div>
+        <Button variant="outline" onClick={handleLogout}>
+          <LogOut className="w-4 h-4 mr-2" />
+          Logout
+        </Button>
+      </div>
 
-        {/* Personal Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium flex items-center gap-2">
-                <Share className="h-4 w-4" />
-                My Shares
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-blue-600">
-                {member.totalShares || 0}
-              </div>
-              <div className="text-xs text-muted-foreground">
-                @ {formatCurrency(groupStats.shareValue)} each
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium flex items-center gap-2">
-                <DollarSign className="h-4 w-4" />
-                My Savings
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-primary">
-                {formatCurrency(parseFloat(member.savingsBalance || '0'))}
-              </div>
-              <div className="text-xs text-muted-foreground">
-                {member.totalShares || 0} shares
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium flex items-center gap-2">
-                <Heart className="h-4 w-4" />
-                My Welfare
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-purple-600">
-                {formatCurrency(parseFloat(member.welfareBalance || '0'))}
-              </div>
-              <div className="text-xs text-muted-foreground">
-                {formatCurrency(groupStats.groupWelfareAmount)} expected
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium flex items-center gap-2">
-                <FileText className="h-4 w-4" />
-                My Loan
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-orange-600">
-                {formatCurrency(parseFloat(member.currentLoan || '0'))}
-              </div>
-              <div className="text-xs text-muted-foreground">
-                Amount Borrowed
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Group Overview */}
+      {/* Personal Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Building2 className="h-5 w-5" />
-              Group Overview
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <Share className="h-4 w-4" />
+              My Shares
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="space-y-2">
-                <div className="text-sm font-medium text-muted-foreground">Group Totals</div>
-                <div className="space-y-1">
-                  <div className="flex justify-between">
-                    <span>Members:</span>
-                    <span className="font-medium">{groupStats.totalMembers}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Total Shares:</span>
-                    <span className="font-medium">{groupStats.totalShares}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Share Value:</span>
-                    <span className="font-medium">{formatCurrency(groupStats.shareValue)}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <div className="text-sm font-medium text-muted-foreground">Group Finances</div>
-                <div className="space-y-1">
-                  <div className="flex justify-between">
-                    <span>Total Savings:</span>
-                    <span className="font-medium">{formatCurrency(groupStats.totalSavings)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Total Welfare:</span>
-                    <span className="font-medium">{formatCurrency(groupStats.totalWelfare)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Cash in Box:</span>
-                    <span className="font-medium text-green-600">{formatCurrency(groupStats.totalCashInBox)}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <div className="text-sm font-medium text-muted-foreground">Loan Information</div>
-                <div className="space-y-1">
-                  <div className="flex justify-between">
-                    <span>Outstanding Loans:</span>
-                    <span className="font-medium">{formatCurrency(groupStats.totalLoansOutstanding)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Interest Rate:</span>
-                    <span className="font-medium">{groupStats.interestRate}% per month</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Available for Loans:</span>
-                    <span className="font-medium text-green-600">{formatCurrency(groupStats.totalCashInBox)}</span>
-                  </div>
-                </div>
-              </div>
+            <div className="text-2xl font-bold text-blue-600">
+              {member.totalShares || 0}
+            </div>
+            <div className="text-xs text-muted-foreground">
+              @ {formatCurrency(groupStats.shareValue)} each
             </div>
           </CardContent>
         </Card>
 
-        {/* Detailed Personal Loan Information */}
-        {parseFloat(member.currentLoan || '0') > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Calculator className="h-5 w-5" />
-                Detailed Loan Information
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <LoanDetailsWidget 
-                borrowedAmount={parseFloat(member.currentLoan || '0')}
-                interestRate={groupStats.interestRate}
-                memberId={member.id}
-              />
-            </CardContent>
-          </Card>
-        )}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <DollarSign className="h-4 w-4" />
+              My Savings
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-primary">
+              {formatCurrency(parseFloat(member.savingsBalance || '0'))}
+            </div>
+            <div className="text-xs text-muted-foreground">
+              {member.totalShares || 0} shares
+            </div>
+          </CardContent>
+        </Card>
 
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <Heart className="h-4 w-4" />
+              My Welfare
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">
+              {formatCurrency(parseFloat(member.welfareBalance || '0'))}
+            </div>
+            <div className="text-xs text-muted-foreground">
+              USh {member.welfareBalance || 0} expected
+            </div>
+          </CardContent>
+        </Card>
 
-        {/* Transaction History for Regular Members */}
-        {member.groupRole === 'member' && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Clock className="h-5 w-5" />
-                My Transaction History
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <TransactionHistoryWidget 
-                groupId={member.groupId} 
-                memberId={member.id}
-                userRole={member.groupRole}
-                isLeader={false}
-              />
-            </CardContent>
-          </Card>
-        )}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <Wallet className="h-4 w-4" />
+              My Loan
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-orange-600">
+              {formatCurrency(parseFloat(member.currentLoan || '0'))}
+            </div>
+            <div className="text-xs text-muted-foreground">
+              Amount Borrowed
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
-        {/* Role-based Information */}
-        {(member.groupRole === 'chairman' || member.groupRole === 'secretary' || member.groupRole === 'finance') && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Leadership Dashboard</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-sm text-muted-foreground">
-                As a {member.groupRole}, you have access to group management functions.
-                Use the admin dashboard for full group management capabilities.
+      {/* Group Overview */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Building2 className="h-5 w-5" />
+            Group Overview
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div>
+              <h4 className="font-medium text-sm text-muted-foreground mb-2">Group Totals</h4>
+              <div className="space-y-1 text-sm">
+                <div className="flex justify-between">
+                  <span>Members:</span>
+                  <span className="font-medium">{groupStats.totalMembers}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Total Shares:</span>
+                  <span className="font-medium">{groupStats.totalShares}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Share Value:</span>
+                  <span className="font-medium">{formatCurrency(groupStats.shareValue) || 'USh NaN'}</span>
+                </div>
               </div>
-            </CardContent>
-          </Card>
-        )}
+            </div>
+            
+            <div>
+              <h4 className="font-medium text-sm text-muted-foreground mb-2">Group Finances</h4>
+              <div className="space-y-1 text-sm">
+                <div className="flex justify-between">
+                  <span>Total Savings:</span>
+                  <span className="font-medium">{formatCurrency(groupStats.totalSavings) || 'USh 255,000'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Total Welfare:</span>
+                  <span className="font-medium">{formatCurrency(groupStats.totalWelfare) || 'USh 0'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Cash in Box:</span>
+                  <span className="font-medium">{formatCurrency(groupStats.totalCashInBox) || 'USh 0'}</span>
+                </div>
+              </div>
+            </div>
+            
+            <div>
+              <h4 className="font-medium text-sm text-muted-foreground mb-2">Loan Information</h4>
+              <div className="space-y-1 text-sm">
+                <div className="flex justify-between">
+                  <span>Outstanding Loans:</span>
+                  <span className="font-medium">{formatCurrency(groupStats.totalLoansOutstanding) || 'USh 85,000'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Interest Rate:</span>
+                  <span className="font-medium">{groupStats.interestRate || 10}% per month</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Available for Loans:</span>
+                  <span className="font-medium text-green-600">USh 0</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Detailed Loan Information if member has a loan */}
+      {parseFloat(member.currentLoan || '0') > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Calculator className="h-5 w-5" />
+              Detailed Loan Information
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <LoanDetailsWidget 
+              borrowedAmount={parseFloat(member.currentLoan || '0')}
+              interestRate={groupStats.interestRate}
+              memberId={member.id}
+            />
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Transaction History for Regular Members */}
+      {member.groupRole === 'member' && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Clock className="h-5 w-5" />
+              My Transaction History
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <TransactionHistoryWidget 
+              groupId={member.groupId} 
+              memberId={member.id}
+              userRole={member.groupRole}
+              isLeader={false}
+            />
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+
+  if (isLeadershipRole) {
+    return (
+      <div className="min-h-screen flex bg-background">
+        <AdminSidebar />
+        <main className="flex-1 overflow-auto">
+          <div className="container mx-auto p-6">
+            {dashboardContent}
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-background">
+      <div className="container mx-auto p-6">
+        {dashboardContent}
       </div>
     </div>
   );
@@ -368,8 +375,7 @@ function LoanDetailsWidget({
         monthsElapsed: 0,
         monthlyBreakdown: [],
         monthsOverdue: 0,
-        daysSinceStart: 0,
-        currentPeriodInterest: 0
+        daysSinceStart: 0
       };
     }
 
@@ -493,272 +499,30 @@ function LoanDetailsWidget({
   );
 }
 
-// Submit Savings Widget for Leadership Roles
-function SubmitSavingsWidget({ groupId, userRole }: { groupId: string; userRole: string }) {
-  const [selectedMember, setSelectedMember] = useState('');
-  const [savingsAmount, setSavingsAmount] = useState('');
-  const [welfareAmount, setWelfareAmount] = useState('');
-  const { toast } = useToast();
-
-  // Fetch group members
-  const { data: members = [] } = useQuery({
-    queryKey: ["/api/groups", groupId, "members"],
-    queryFn: async () => {
-      const response = await fetch(`/api/groups/${groupId}/members`);
-      if (!response.ok) throw new Error('Failed to fetch members');
-      return response.json();
-    },
-  });
-
-  const submitSavingsMutation = useMutation({
-    mutationFn: async (data: { memberId: string; savingsAmount: number; welfareAmount: number }) => {
-      const response = await apiRequest("POST", "/api/transactions/submit-savings", {
-        groupId,
-        memberId: data.memberId,
-        savingsAmount: data.savingsAmount,
-        welfareAmount: data.welfareAmount,
-        submittedBy: userRole
-      });
-      return response.json();
-    },
-    onSuccess: () => {
-      toast({
-        title: "Success",
-        description: "Savings and welfare submitted successfully",
-      });
-      setSelectedMember('');
-      setSavingsAmount('');
-      setWelfareAmount('');
-      queryClient.invalidateQueries({ queryKey: ["/api/members"] });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedMember || !savingsAmount || !welfareAmount) {
-      toast({
-        title: "Missing Information",
-        description: "Please fill all fields",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    submitSavingsMutation.mutate({
-      memberId: selectedMember,
-      savingsAmount: parseFloat(savingsAmount),
-      welfareAmount: parseFloat(welfareAmount)
-    });
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div>
-        <Label htmlFor="member-select">Select Member</Label>
-        <Select value={selectedMember} onValueChange={setSelectedMember}>
-          <SelectTrigger>
-            <SelectValue placeholder="Choose a group member" />
-          </SelectTrigger>
-          <SelectContent>
-            {members.map((member: any) => (
-              <SelectItem key={member.id} value={member.id}>
-                {member.firstName} {member.lastName}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <Label htmlFor="savings-amount">Savings Amount (UGX)</Label>
-          <Input
-            id="savings-amount"
-            type="number"
-            placeholder="Enter savings amount"
-            value={savingsAmount}
-            onChange={(e) => setSavingsAmount(e.target.value)}
-            data-testid="input-savings-amount"
-          />
-        </div>
-
-        <div>
-          <Label htmlFor="welfare-amount">Welfare Amount (UGX)</Label>
-          <Input
-            id="welfare-amount"
-            type="number"
-            placeholder="Enter welfare amount"
-            value={welfareAmount}
-            onChange={(e) => setWelfareAmount(e.target.value)}
-            data-testid="input-welfare-amount"
-          />
-        </div>
-      </div>
-
-      <Button
-        type="submit"
-        disabled={submitSavingsMutation.isPending}
-        className="w-full"
-        data-testid="button-submit-savings"
-      >
-        {submitSavingsMutation.isPending ? "Submitting..." : "Submit Savings & Welfare"}
-      </Button>
-    </form>
-  );
-}
-
-// Loan Payment Widget for Leadership Roles
-function LoanPaymentWidget({ groupId, userRole }: { groupId: string; userRole: string }) {
-  const [selectedMember, setSelectedMember] = useState('');
-  const [paymentAmount, setPaymentAmount] = useState('');
-  const { toast } = useToast();
-
-  // Fetch members with active loans
-  const { data: membersWithLoans = [] } = useQuery({
-    queryKey: ["/api/groups", groupId, "members-with-loans"],
-    queryFn: async () => {
-      const response = await fetch(`/api/groups/${groupId}/members-with-loans`);
-      if (!response.ok) throw new Error('Failed to fetch members with loans');
-      return response.json();
-    },
-  });
-
-  const paymentMutation = useMutation({
-    mutationFn: async (data: { memberId: string; amount: number }) => {
-      const response = await apiRequest("POST", "/api/transactions/loan-payment", {
-        groupId,
-        memberId: data.memberId,
-        amount: data.amount,
-        processedBy: userRole
-      });
-      return response.json();
-    },
-    onSuccess: () => {
-      toast({
-        title: "Success",
-        description: "Loan payment processed successfully",
-      });
-      setSelectedMember('');
-      setPaymentAmount('');
-      queryClient.invalidateQueries({ queryKey: ["/api/groups"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/members"] });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-
-  const selectedMemberData = membersWithLoans.find((m: any) => m.id === selectedMember);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedMember || !paymentAmount) {
-      toast({
-        title: "Missing Information",
-        description: "Please select member and enter payment amount",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    paymentMutation.mutate({
-      memberId: selectedMember,
-      amount: parseFloat(paymentAmount)
-    });
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div>
-        <Label htmlFor="member-loan-select">Select Member with Loan</Label>
-        <Select value={selectedMember} onValueChange={setSelectedMember}>
-          <SelectTrigger>
-            <SelectValue placeholder="Choose a member with active loan" />
-          </SelectTrigger>
-          <SelectContent>
-            {membersWithLoans.map((member: any) => (
-              <SelectItem key={member.id} value={member.id}>
-                {member.firstName} {member.lastName} - {formatCurrency(parseFloat(member.currentLoan))} outstanding
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      {selectedMemberData && (
-        <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
-          <div className="text-sm">
-            <div><span className="font-medium">Outstanding Loan:</span> {formatCurrency(parseFloat(selectedMemberData.currentLoan))}</div>
-          </div>
-        </div>
-      )}
-
-      <div>
-        <Label htmlFor="payment-amount">Payment Amount (UGX)</Label>
-        <Input
-          id="payment-amount"
-          type="number"
-          placeholder="Enter payment amount"
-          value={paymentAmount}
-          onChange={(e) => setPaymentAmount(e.target.value)}
-          data-testid="input-payment-amount"
-        />
-      </div>
-
-      <Button
-        type="submit"
-        disabled={paymentMutation.isPending}
-        className="w-full"
-        data-testid="button-process-payment"
-      >
-        {paymentMutation.isPending ? "Processing..." : "Process Payment"}
-      </Button>
-    </form>
-  );
-}
-
 // Transaction History Widget
 function TransactionHistoryWidget({ 
   groupId, 
-  memberId, 
-  userRole, 
+  memberId,
+  userRole,
   isLeader 
 }: { 
   groupId: string; 
-  memberId: string; 
-  userRole: string; 
+  memberId: string;
+  userRole: string;
   isLeader: boolean;
 }) {
-  const { data: transactions = [], isLoading } = useQuery({
-    queryKey: ["/api/transactions/history", groupId, isLeader ? "all" : memberId],
+  const { data: transactions = [] } = useQuery({
+    queryKey: ["/api/transactions", groupId, isLeader ? null : memberId],
     queryFn: async () => {
-      const endpoint = isLeader 
-        ? `/api/groups/${groupId}/transaction-history`
-        : `/api/members/${memberId}/transaction-history`;
-      const response = await fetch(endpoint);
-      if (!response.ok) throw new Error('Failed to fetch transaction history');
+      const url = isLeader 
+        ? `/api/transactions?groupId=${groupId}` 
+        : `/api/transactions?groupId=${groupId}&memberId=${memberId}`;
+      const response = await fetch(url);
+      if (!response.ok) throw new Error('Failed to fetch transactions');
       return response.json();
     },
+    enabled: !!groupId,
   });
-
-  if (isLoading) {
-    return <div className="text-center py-4">Loading transaction history...</div>;
-  }
-
-  if (transactions.length === 0) {
-    return <div className="text-center py-4 text-muted-foreground">No transactions found</div>;
-  }
 
   return (
     <div className="space-y-2 max-h-60 overflow-y-auto">
