@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,17 +9,36 @@ import { useToast } from "@/hooks/use-toast";
 import { formatCurrency } from "@/lib/utils";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { PlusCircle } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function SubmitSavingsPage() {
   const [selectedGroup, setSelectedGroup] = useState('');
   const [selectedMember, setSelectedMember] = useState('');
   const [savingsAmount, setSavingsAmount] = useState('');
   const [welfareAmount, setWelfareAmount] = useState('');
+  const [memberSession, setMemberSession] = useState<any>(null);
   const { toast } = useToast();
+  const { isAuthenticated } = useAuth();
 
-  // Fetch groups
+  // Load member session for leadership roles
+  useEffect(() => {
+    const sessionData = localStorage.getItem('memberSession');
+    if (sessionData) {
+      const session = JSON.parse(sessionData);
+      setMemberSession(session);
+      if (session.member?.groupId) {
+        setSelectedGroup(session.member.groupId);
+      }
+    }
+  }, []);
+
+  // Check if user is leadership role
+  const isLeadershipRole = memberSession && ['chairman', 'secretary', 'finance'].includes(memberSession.member?.groupRole);
+
+  // Fetch groups (only for admin users)
   const { data: groups = [] } = useQuery({
     queryKey: ["/api/groups"],
+    enabled: isAuthenticated && !isLeadershipRole, // Only fetch for admin users
   });
 
   // Fetch members for selected group
@@ -109,24 +128,37 @@ export default function SubmitSavingsPage() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <Label htmlFor="group-select">Select Group</Label>
-              <Select value={selectedGroup} onValueChange={(value) => {
-                setSelectedGroup(value);
-                setSelectedMember(''); // Reset member selection when group changes
-              }}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Choose a group" />
-                </SelectTrigger>
-                <SelectContent>
-                  {(groups as any[]).map((group: any) => (
-                    <SelectItem key={group.id} value={group.id}>
-                      {group.groupName} - {group.location}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {/* Show group selection only for admin users */}
+            {!isLeadershipRole && (
+              <div>
+                <Label htmlFor="group-select">Select Group</Label>
+                <Select value={selectedGroup} onValueChange={(value) => {
+                  setSelectedGroup(value);
+                  setSelectedMember(''); // Reset member selection when group changes
+                }}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose a group" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(groups as any[]).map((group: any) => (
+                      <SelectItem key={group.id} value={group.id}>
+                        {group.groupName} - {group.location}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {/* Show group info for leadership users */}
+            {isLeadershipRole && memberSession && (
+              <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
+                <div className="text-sm">
+                  <div><span className="font-medium">Group:</span> {memberSession.member?.groupName || 'Unknown Group'}</div>
+                  <div><span className="font-medium">Your Role:</span> {memberSession.member?.groupRole}</div>
+                </div>
+              </div>
+            )}
 
             {selectedGroup && (
               <div>
