@@ -196,8 +196,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { userId, phone, pin, barcode } = req.body;
       
+      console.log('Staff login attempt:', { userId, phone, pin: pin ? '[PROVIDED]' : '[MISSING]' });
+      
       // Check if at least one identifier is provided along with PIN
       if ((!userId && !phone) || !pin) {
+        console.log('Missing required fields');
         return res.status(400).json({ message: "Either User ID or phone number is required, along with PIN" });
       }
       
@@ -205,31 +208,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Try to find user by userId or phone separately
       if (userId) {
-        // Find by userId only
+        console.log('Looking up user by userId:', userId);
         user = await storage.getUserByPhoneOrUserId(userId);
       } else if (phone) {
-        // Find by phone only
+        console.log('Looking up user by phone:', phone);
         user = await storage.getUserByPhoneOrUserId(phone);
       }
       
       if (!user) {
+        console.log('User not found');
         return res.status(401).json({ message: "Invalid credentials" });
       }
       
+      console.log('User found:', { 
+        id: user.id, 
+        userId: user.userId, 
+        phone: user.phone, 
+        role: user.role,
+        isActive: user.isActive 
+      });
+      
       // Check if user is active
       if (!user.isActive) {
+        console.log('User account is deactivated');
         return res.status(401).json({ message: "Account is deactivated" });
       }
       
       // Verify PIN using proper hashing verification
+      console.log('Verifying PIN...');
       const isValidPin = await comparePin(pin, user.pin);
-      if (!isValidPin) {
-        return res.status(401).json({ message: "Invalid credentials" });
-      }
+      console.log('PIN verification result:', isValidPin);
       
-      // Optional barcode verification (if provided)
-      if (barcode && user.barcode && user.barcode !== barcode) {
-        return res.status(401).json({ message: "Invalid barcode" });
+      if (!isValidPin) {
+        console.log('PIN verification failed');
+        return res.status(401).json({ message: "Invalid credentials" });
       }
       
       // Update last login
