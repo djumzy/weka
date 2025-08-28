@@ -167,6 +167,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Invalid phone number or PIN" });
       }
       
+      // Set session for member authentication
+      (req.session as any).memberId = member.id;
+      (req.session as any).userRole = 'member';
+      
       // Get group stats for the member
       const groupStats = await storage.getGroupStats(member.groupId);
       
@@ -246,6 +250,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Update last login
       await storage.updateUser(user.id, { lastLogin: new Date() });
+      
+      // Set session for authentication (same as original /api/login)
+      (req.session as any).userId = user.id;
+      (req.session as any).userRole = user.role;
+      
+      console.log('Session set:', { userId: user.id, userRole: user.role });
+      
+      // Save session explicitly
+      await new Promise<void>((resolve, reject) => {
+        req.session.save((err) => {
+          if (err) {
+            console.error('Session save error:', err);
+            reject(err);
+          } else {
+            console.log('Session saved successfully');
+            resolve();
+          }
+        });
+      });
       
       res.json({
         userType: 'staff',

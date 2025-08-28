@@ -157,7 +157,15 @@ export function setupAuth(app: Express) {
   app.get("/api/auth/user", async (req: Request, res: Response) => {
     const session = req.session as any;
     
+    console.log('Auth check - session:', { 
+      sessionId: req.sessionID,
+      userId: session.userId, 
+      userRole: session.userRole,
+      sessionKeys: Object.keys(session || {})
+    });
+    
     if (!session.userId) {
+      console.log('No userId in session - unauthorized');
       return res.status(401).json({ message: "Unauthorized" });
     }
 

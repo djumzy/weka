@@ -35,14 +35,23 @@ export default function UnifiedLogin() {
 
   const loginMutation = useMutation({
     mutationFn: async (formData: LoginFormData) => {
-      const endpoint = formData.userType === 'member' 
-        ? '/api/auth/member-login' 
-        : '/api/auth/staff-login';
+      let endpoint, body;
+      
+      if (formData.userType === 'member') {
+        endpoint = '/api/auth/member-login';
+        body = { phone: formData.phone, pin: formData.pin };
+      } else {
+        // Use the working original login endpoint for staff
+        endpoint = '/api/login';
+        const phoneOrUserId = formData.userId || formData.phone;
+        body = { phoneOrUserId, pin: formData.pin };
+      }
       
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        credentials: 'include', // Important for session cookies
+        body: JSON.stringify(body),
       });
       
       if (!response.ok) {
@@ -53,7 +62,7 @@ export default function UnifiedLogin() {
       return response.json();
     },
     onSuccess: (data) => {
-      // Store session data
+      // Handle different response formats
       if (data.userType === 'member') {
         localStorage.setItem('memberSession', JSON.stringify(data));
         toast({
@@ -61,14 +70,25 @@ export default function UnifiedLogin() {
           description: `Welcome back, ${data.member.firstName}!`,
         });
         setLocation(`/member-dashboard/${data.member.id}`);
-      } else {
+      } else if (data.userType === 'staff') {
+        // New staff login response format
         localStorage.setItem('staffSession', JSON.stringify(data));
         toast({
           title: "Login successful", 
           description: `Welcome back, ${data.user.firstName}!`,
         });
-        // Route to appropriate dashboard based on role
         if (data.user.role === 'admin') {
+          setLocation('/');
+        } else {
+          setLocation('/field-dashboard');
+        }
+      } else {
+        // Original login response format (staff via /api/login)
+        toast({
+          title: "Login successful", 
+          description: `Welcome back, ${data.firstName}!`,
+        });
+        if (data.role === 'admin') {
           setLocation('/');
         } else {
           setLocation('/field-dashboard');
