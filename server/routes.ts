@@ -652,6 +652,182 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Enhanced Transaction Endpoints for Member Dashboard
+  
+  // Submit savings and welfare by leadership roles
+  app.post('/api/transactions/submit-savings', isAuthenticated, async (req: any, res) => {
+    try {
+      const { groupId, memberId, savingsAmount, welfareAmount, submittedBy } = req.body;
+      
+      if (!groupId || !memberId || savingsAmount < 0 || welfareAmount < 0) {
+        return res.status(400).json({ message: "Invalid submission data" });
+      }
+
+      // Create savings transaction
+      if (savingsAmount > 0) {
+        await storage.createTransaction({
+          groupId,
+          memberId,
+          type: 'deposit',
+          amount: savingsAmount.toString(),
+          description: `Savings deposit submitted by ${submittedBy}`,
+          createdBy: req.userId || memberId
+        });
+        
+        // Update member's savings balance
+        const member = await storage.getMember(memberId);
+        if (member) {
+          await storage.updateMember(memberId, {
+            savingsBalance: (parseFloat(member.savingsBalance) + savingsAmount).toString(),
+            totalShares: member.totalShares + Math.floor(savingsAmount / 1000) // Assuming 1000 UGX per share
+          });
+        }
+      }
+
+      // Create welfare transaction
+      if (welfareAmount > 0) {
+        await storage.createTransaction({
+          groupId,
+          memberId,
+          type: 'welfare_payment',
+          amount: welfareAmount.toString(),
+          description: `Welfare payment submitted by ${submittedBy}`,
+          createdBy: req.userId || memberId
+        });
+
+        // Update member's welfare balance
+        const member = await storage.getMember(memberId);
+        if (member) {
+          await storage.updateMember(memberId, {
+            welfareBalance: (parseFloat(member.welfareBalance) + welfareAmount).toString()
+          });
+        }
+      }
+
+      // Update cash in box
+      if (savingsAmount > 0 || welfareAmount > 0) {
+        await storage.createCashboxEntry({
+          groupId,
+          amount: (savingsAmount + welfareAmount).toString(),
+          transactionType: 'deposit',
+          description: `Savings and welfare deposits submitted by ${submittedBy}`,
+          recordedBy: req.userId || memberId
+        });
+      }
+
+      res.json({ message: "Savings and welfare submitted successfully" });
+    } catch (error) {
+      console.error("Error submitting savings:", error);
+      res.status(500).json({ message: "Failed to submit savings and welfare" });
+    }
+  });
+
+  // Process loan payment by leadership roles
+  app.post('/api/transactions/loan-payment', isAuthenticated, async (req: any, res) => {
+    try {
+      const { groupId, memberId, amount, processedBy } = req.body;
+      
+      if (!groupId || !memberId || amount <= 0) {
+        return res.status(400).json({ message: "Invalid payment data" });
+      }
+
+      const member = await storage.getMember(memberId);
+      if (!member) {
+        return res.status(404).json({ message: "Member not found" });
+      }
+
+      const currentLoan = parseFloat(member.currentLoan);
+      if (currentLoan <= 0) {
+        return res.status(400).json({ message: "Member has no outstanding loan" });
+      }
+
+      const paymentAmount = Math.min(amount, currentLoan);
+      const newLoanBalance = currentLoan - paymentAmount;
+
+      // Create loan payment transaction
+      await storage.createTransaction({
+        groupId,
+        memberId,
+        type: 'loan_payment',
+        amount: paymentAmount.toString(),
+        description: `Loan payment processed by ${processedBy}`,
+        createdBy: req.userId || memberId
+      });
+
+      // Update member's loan balance
+      await storage.updateMember(memberId, {
+        currentLoan: newLoanBalance.toString()
+      });
+
+      // Add to cash in box
+      await storage.createCashboxEntry({
+        groupId,
+        amount: paymentAmount.toString(),
+        transactionType: 'deposit',
+        description: `Loan payment from ${member.firstName} ${member.lastName}`,
+        recordedBy: req.userId || memberId
+      });
+
+      res.json({ 
+        message: "Loan payment processed successfully",
+        remainingBalance: newLoanBalance,
+        paymentAmount: paymentAmount
+      });
+    } catch (error) {
+      console.error("Error processing loan payment:", error);
+      res.status(500).json({ message: "Failed to process loan payment" });
+    }
+  });
+
+  // Get members with active loans for a group
+  app.get('/api/groups/:id/members-with-loans', isAuthenticated, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const members = await storage.getGroupMembers(id);
+      const membersWithLoans = members.filter(member => parseFloat(member.currentLoan) > 0);
+      res.json(membersWithLoans);
+    } catch (error) {
+      console.error("Error fetching members with loans:", error);
+      res.status(500).json({ message: "Failed to fetch members with loans" });
+    }
+  });
+
+  // Get transaction history for a group (leadership view)
+  app.get('/api/groups/:id/transaction-history', isAuthenticated, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const transactions = await storage.getGroupTransactions(id);
+      
+      // Enrich with member names
+      const enrichedTransactions = await Promise.all(
+        transactions.map(async (transaction) => {
+          const member = await storage.getMember(transaction.memberId);
+          return {
+            ...transaction,
+            memberName: member ? `${member.firstName} ${member.lastName}` : 'Unknown Member'
+          };
+        })
+      );
+
+      res.json(enrichedTransactions);
+    } catch (error) {
+      console.error("Error fetching group transaction history:", error);
+      res.status(500).json({ message: "Failed to fetch transaction history" });
+    }
+  });
+
+  // Get transaction history for a specific member
+  app.get('/api/members/:id/transaction-history', async (req, res) => {
+    try {
+      const { id } = req.params;
+      const transactions = await storage.getMemberTransactions(id);
+      res.json(transactions);
+    } catch (error) {
+      console.error("Error fetching member transaction history:", error);
+      res.status(500).json({ message: "Failed to fetch member transaction history" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

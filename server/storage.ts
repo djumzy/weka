@@ -72,6 +72,16 @@ export interface IStorage {
   getCashboxBalance(groupId: string): Promise<number>;
   getCashboxEntries(groupId: string): Promise<Cashbox[]>;
 
+  // Additional member operations
+  getMemberByPhone(phone: string): Promise<Member | undefined>;
+  getGroupMembers(groupId: string): Promise<Member[]>;
+  updateMemberShares(id: string, shares: number): Promise<void>;
+
+  // Enhanced transaction operations
+  getGroupTransactions(groupId: string): Promise<Transaction[]>;
+  getMemberTransactions(memberId: string): Promise<Transaction[]>;
+  getGroupStats(groupId: string): Promise<any>;
+
   // Dashboard statistics
   getDashboardStats(): Promise<{
     totalGroups: number;
@@ -449,6 +459,43 @@ export class DatabaseStorage implements IStorage {
         updatedAt: new Date()
       })
       .where(eq(members.id, memberId));
+  }
+
+  // Enhanced member and transaction methods for dashboard
+  async getGroupMembers(groupId: string): Promise<Member[]> {
+    return await db.select().from(members).where(eq(members.groupId, groupId));
+  }
+
+  async getGroupTransactions(groupId: string): Promise<Transaction[]> {
+    return await this.getTransactions(groupId);
+  }
+
+  async getMemberTransactions(memberId: string): Promise<Transaction[]> {
+    return await this.getTransactions(undefined, memberId);
+  }
+
+  async getGroupStats(groupId: string): Promise<any> {
+    const group = await this.getGroup(groupId);
+    if (!group) return null;
+
+    const groupMembers = await this.getGroupMembers(groupId);
+    const totalMembers = groupMembers.length;
+    const totalSavings = groupMembers.reduce((sum, member) => sum + parseFloat(member.savingsBalance), 0);
+    const totalWelfare = groupMembers.reduce((sum, member) => sum + parseFloat(member.welfareBalance), 0);
+    const totalLoansOutstanding = groupMembers.reduce((sum, member) => sum + parseFloat(member.currentLoan), 0);
+    const totalCashInBox = await this.getCashboxBalance(groupId);
+
+    return {
+      groupName: group.groupName,
+      totalMembers,
+      totalSavings,
+      totalWelfare,
+      totalLoansOutstanding,
+      totalCashInBox,
+      interestRate: parseFloat(group.interestRate || '10'), // Default 10%
+      groupLocation: group.location,
+      meetingFrequency: group.meetingFrequency
+    };
   }
 
   // Dashboard statistics

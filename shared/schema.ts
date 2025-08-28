@@ -108,20 +108,23 @@ export const transactions = pgTable("transactions", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-// Loans
+// Loans with compound interest tracking
 export const loans = pgTable("loans", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   groupId: varchar("group_id").notNull().references(() => groups.id),
   memberId: varchar("member_id").notNull().references(() => members.id),
-  amount: decimal("amount", { precision: 12, scale: 2 }).notNull(),
-  interestRate: decimal("interest_rate", { precision: 5, scale: 2 }).notNull(), // percentage
+  amount: decimal("amount", { precision: 12, scale: 2 }).notNull(), // Original borrowed amount
+  interestRate: decimal("interest_rate", { precision: 5, scale: 2 }).notNull(), // percentage per month
   termMonths: integer("term_months").notNull(),
   status: varchar("status", { length: 20 }).notNull().default('pending'), // pending, approved, active, completed, defaulted
   applicationDate: timestamp("application_date").notNull().defaultNow(),
   approvalDate: timestamp("approval_date"),
   disbursementDate: timestamp("disbursement_date"),
   dueDate: timestamp("due_date"),
-  remainingBalance: decimal("remaining_balance", { precision: 12, scale: 2 }),
+  remainingBalance: decimal("remaining_balance", { precision: 12, scale: 2 }), // Current balance with compound interest
+  totalAmountDue: decimal("total_amount_due", { precision: 12, scale: 2 }), // Total amount with all compound interest
+  monthsOverdue: integer("months_overdue").notNull().default(0), // Track months past due
+  lastInterestUpdate: timestamp("last_interest_update"), // When interest was last compounded
   purpose: text("purpose"),
   approvedBy: varchar("approved_by").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
