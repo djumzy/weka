@@ -23,6 +23,7 @@ import LoanSubmissionPage from "@/pages/LoanSubmissionPage";
 import Meetings from "@/pages/Meetings";
 import UserManagement from "@/pages/UserManagement";
 import Reports from "@/pages/Reports";
+import Reset from "@/pages/Reset";
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -32,8 +33,13 @@ function Router() {
   useEffect(() => {
     const sessionData = localStorage.getItem('memberSession');
     if (sessionData) {
-      const session = JSON.parse(sessionData);
-      setMemberSession(session);
+      try {
+        const session = JSON.parse(sessionData);
+        setMemberSession(session);
+      } catch (error) {
+        console.error('Invalid member session:', error);
+        localStorage.removeItem('memberSession');
+      }
     }
   }, []);
 
@@ -41,8 +47,16 @@ function Router() {
   const isLeadershipRole = memberSession && ['chairman', 'secretary', 'finance'].includes(memberSession.member?.groupRole);
   const hasNavigationAccess = isAuthenticated || isLeadershipRole;
 
+  // If loading or no access, show login page - don't trigger API calls
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
+
   return (
     <Switch>
+      {/* Reset page for clearing corrupted sessions */}
+      <Route path="/reset" component={Reset} />
+      
       {/* Unified login page */}
       <Route path="/login" component={Login} />
       

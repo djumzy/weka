@@ -18,10 +18,13 @@ export function useAuth() {
     }
   }, []);
 
-  // Always try admin authentication first
+  // Always try admin authentication first, but disable when member session exists
   const { data: adminUser, isLoading } = useQuery({
     queryKey: ["/api/auth/user"],
     retry: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    enabled: !memberSession, // Don't make API calls if member session exists
   });
 
   // Priority: Admin authentication first, then member session

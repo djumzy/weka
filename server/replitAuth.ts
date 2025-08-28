@@ -134,7 +134,17 @@ export async function setupAuth(app: Express) {
         return res.status(500).json({ message: "Failed to clear session" });
       }
       res.clearCookie('connect.sid'); // Clear the session cookie
+      res.clearCookie('session'); // Clear any other session cookies
       res.json({ message: "Session cleared" });
+    });
+  });
+
+  // Add endpoint to force clear all sessions
+  app.get("/api/clear-all-sessions", (req, res) => {
+    req.session.destroy((err) => {
+      res.clearCookie('connect.sid');
+      res.clearCookie('session');
+      res.redirect('/');
     });
   });
 }
