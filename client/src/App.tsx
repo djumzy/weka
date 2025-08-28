@@ -16,6 +16,9 @@ import FieldDashboard from "@/pages/FieldDashboard";
 import Transactions from "@/pages/Transactions";
 import Loans from "@/pages/Loans";
 import LoanCalculator from "@/pages/LoanCalculator";
+import SubmitSavingsPage from "@/pages/SubmitSavingsPage";
+import LoanPaymentsPage from "@/pages/LoanPaymentsPage";
+import LoanSubmissionPage from "@/pages/LoanSubmissionPage";
 import Meetings from "@/pages/Meetings";
 import UserManagement from "@/pages/UserManagement";
 import Reports from "@/pages/Reports";
@@ -45,6 +48,9 @@ function Router() {
           <Route path="/transactions" component={Transactions} />
           <Route path="/loans" component={Loans} />
           <Route path="/loan-calculator" component={LoanCalculator} />
+          <Route path="/submit-savings" component={SubmitSavingsPage} />
+          <Route path="/loan-payments" component={LoanPaymentsPage} />
+          <Route path="/loan-submission" component={LoanSubmissionPage} />
           <Route path="/meetings" component={Meetings} />
           <Route path="/user-management" component={UserManagement} />
           <Route path="/reports" component={Reports} />

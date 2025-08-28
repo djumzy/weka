@@ -289,61 +289,12 @@ export default function MemberDashboard() {
               <LoanDetailsWidget 
                 borrowedAmount={parseFloat(member.currentLoan || '0')}
                 interestRate={groupStats.interestRate}
-                disbursementDate="2025-01-01" // This should come from loan data
                 memberId={member.id}
               />
             </CardContent>
           </Card>
         )}
 
-        {/* Management Sections for Leadership Roles */}
-        {(member.groupRole === 'chairman' || member.groupRole === 'secretary' || member.groupRole === 'finance') && (
-          <>
-            {/* Submit Savings Section */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <PlusCircle className="h-5 w-5" />
-                  Submit Member Savings & Welfare
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <SubmitSavingsWidget groupId={member.groupId} userRole={member.groupRole} />
-              </CardContent>
-            </Card>
-
-            {/* Loan Payment Section */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <MinusCircle className="h-5 w-5" />
-                  Process Loan Payments
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <LoanPaymentWidget groupId={member.groupId} userRole={member.groupRole} />
-              </CardContent>
-            </Card>
-
-            {/* Transaction History Section */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Clock className="h-5 w-5" />
-                  Transaction History
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <TransactionHistoryWidget 
-                  groupId={member.groupId} 
-                  memberId={member.id}
-                  userRole={member.groupRole}
-                  isLeader={true}
-                />
-              </CardContent>
-            </Card>
-          </>
-        )}
 
         {/* Transaction History for Regular Members */}
         {member.groupRole === 'member' && (
@@ -388,26 +339,52 @@ export default function MemberDashboard() {
 function LoanDetailsWidget({ 
   borrowedAmount, 
   interestRate, 
-  disbursementDate, 
   memberId 
 }: { 
   borrowedAmount: number; 
   interestRate: number; 
-  disbursementDate: string; 
   memberId: string;
 }) {
   const { toast } = useToast();
 
+  // Fetch loan data to get actual disbursement date
+  const { data: loanData } = useQuery({
+    queryKey: ["/api/loans/member", memberId],
+    queryFn: async () => {
+      const response = await fetch(`/api/loans?memberId=${memberId}&status=active`);
+      if (!response.ok) throw new Error('Failed to fetch loan data');
+      const loans = await response.json();
+      return loans.length > 0 ? loans[0] : null; // Get the most recent active loan
+    },
+    enabled: borrowedAmount > 0,
+  });
+
   // Calculate compound interest based on time since disbursement
   const calculateCompoundInterest = () => {
+    if (!loanData || !loanData.approvedDate) {
+      return {
+        currentAmount: borrowedAmount,
+        totalInterest: 0,
+        monthsElapsed: 0,
+        monthlyBreakdown: [],
+        monthsOverdue: 0
+      };
+    }
+
     const now = new Date();
-    const startDate = new Date(disbursementDate);
-    const monthsElapsed = Math.floor((now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24 * 30));
+    const startDate = new Date(loanData.approvedDate);
+    const daysSinceStart = Math.floor((now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+    
+    // Grace period is 28 days
+    const gracePeriodDays = 28;
+    const daysAfterGrace = Math.max(0, daysSinceStart - gracePeriodDays);
+    const monthsElapsed = Math.floor(daysAfterGrace / 30);
     
     let currentAmount = borrowedAmount;
     let totalInterest = 0;
     const monthlyBreakdown = [];
 
+    // Only calculate compound interest after grace period
     for (let month = 1; month <= monthsElapsed; month++) {
       const monthlyInterest = currentAmount * (interestRate / 100);
       totalInterest += monthlyInterest;
@@ -426,7 +403,9 @@ function LoanDetailsWidget({
       totalInterest,
       monthsElapsed,
       monthlyBreakdown,
-      monthsOverdue: Math.max(0, monthsElapsed - 1) // 28 days = ~1 month grace period
+      monthsOverdue: monthsElapsed,
+      daysSinceStart,
+      gracePeriodRemaining: Math.max(0, gracePeriodDays - daysSinceStart)
     };
   };
 
@@ -474,7 +453,10 @@ function LoanDetailsWidget({
           Monthly Interest Breakdown
         </h4>
         <div className="text-sm text-muted-foreground mb-2">
-          Interest Rate: {interestRate}% per month • Months Elapsed: {loanDetails.monthsElapsed}
+          Interest Rate: {interestRate}% per month • Days Since Loan: {loanDetails.daysSinceStart || 0}
+          {loanDetails.gracePeriodRemaining > 0 && (
+            <span className="text-green-600"> • Grace Period: {loanDetails.gracePeriodRemaining} days remaining</span>
+          )}
         </div>
         
         {loanDetails.monthlyBreakdown.length > 0 ? (

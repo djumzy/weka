@@ -1,0 +1,178 @@
+import { useState } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
+import { formatCurrency } from "@/lib/utils";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { PlusCircle } from "lucide-react";
+
+export default function SubmitSavingsPage() {
+  const [selectedGroup, setSelectedGroup] = useState('');
+  const [selectedMember, setSelectedMember] = useState('');
+  const [savingsAmount, setSavingsAmount] = useState('');
+  const [welfareAmount, setWelfareAmount] = useState('');
+  const { toast } = useToast();
+
+  // Fetch groups
+  const { data: groups = [] } = useQuery({
+    queryKey: ["/api/groups"],
+  });
+
+  // Fetch members for selected group
+  const { data: members = [] } = useQuery({
+    queryKey: ["/api/groups", selectedGroup, "members"],
+    queryFn: async () => {
+      if (!selectedGroup) return [];
+      const response = await fetch(`/api/groups/${selectedGroup}/members`);
+      if (!response.ok) throw new Error('Failed to fetch members');
+      return response.json();
+    },
+    enabled: !!selectedGroup,
+  });
+
+  const submitSavingsMutation = useMutation({
+    mutationFn: async (data: { groupId: string; memberId: string; savingsAmount: number; welfareAmount: number }) => {
+      const response = await apiRequest("POST", "/api/transactions/submit-savings", {
+        groupId: data.groupId,
+        memberId: data.memberId,
+        savingsAmount: data.savingsAmount,
+        welfareAmount: data.welfareAmount,
+        submittedBy: "admin" // Could be dynamic based on current user role
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Savings and welfare submitted successfully",
+      });
+      setSelectedMember('');
+      setSavingsAmount('');
+      setWelfareAmount('');
+      queryClient.invalidateQueries({ queryKey: ["/api/groups"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/members"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedGroup || !selectedMember || !savingsAmount || !welfareAmount) {
+      toast({
+        title: "Missing Information",
+        description: "Please fill all fields",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    submitSavingsMutation.mutate({
+      groupId: selectedGroup,
+      memberId: selectedMember,
+      savingsAmount: parseFloat(savingsAmount),
+      welfareAmount: parseFloat(welfareAmount)
+    });
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center gap-2">
+        <PlusCircle className="h-6 w-6" />
+        <h1 className="text-2xl font-bold">Submit Member Savings & Welfare</h1>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Submit Savings and Welfare for Group Members</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <Label htmlFor="group-select">Select Group</Label>
+              <Select value={selectedGroup} onValueChange={(value) => {
+                setSelectedGroup(value);
+                setSelectedMember(''); // Reset member selection when group changes
+              }}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Choose a group" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(groups as any[]).map((group: any) => (
+                    <SelectItem key={group.id} value={group.id}>
+                      {group.groupName} - {group.location}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {selectedGroup && (
+              <div>
+                <Label htmlFor="member-select">Select Member</Label>
+                <Select value={selectedMember} onValueChange={setSelectedMember}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose a group member" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {members.map((member: any) => (
+                      <SelectItem key={member.id} value={member.id}>
+                        {member.firstName} {member.lastName} - Current Savings: {formatCurrency(parseFloat(member.savingsBalance))}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {selectedMember && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="savings-amount">Savings Amount (UGX)</Label>
+                  <Input
+                    id="savings-amount"
+                    type="number"
+                    placeholder="Enter savings amount"
+                    value={savingsAmount}
+                    onChange={(e) => setSavingsAmount(e.target.value)}
+                    data-testid="input-savings-amount"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="welfare-amount">Welfare Amount (UGX)</Label>
+                  <Input
+                    id="welfare-amount"
+                    type="number"
+                    placeholder="Enter welfare amount"
+                    value={welfareAmount}
+                    onChange={(e) => setWelfareAmount(e.target.value)}
+                    data-testid="input-welfare-amount"
+                  />
+                </div>
+              </div>
+            )}
+
+            <Button
+              type="submit"
+              disabled={submitSavingsMutation.isPending || !selectedGroup || !selectedMember}
+              className="w-full"
+              data-testid="button-submit-savings"
+            >
+              {submitSavingsMutation.isPending ? "Submitting..." : "Submit Savings & Welfare"}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

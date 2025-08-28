@@ -492,6 +492,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const loanData = insertLoanSchema.parse(req.body);
       const loan = await storage.createLoan(loanData);
+      
+      // Update member's current loan amount when loan is approved/active
+      if (loan.status === 'approved' || loan.status === 'active') {
+        const member = await storage.getMember(loan.memberId);
+        if (member) {
+          const currentLoan = parseFloat(member.currentLoan) + parseFloat(loan.amount);
+          await storage.updateMember(loan.memberId, {
+            currentLoan: currentLoan.toString()
+          });
+        }
+      }
+      
       res.json(loan);
     } catch (error) {
       if (error instanceof z.ZodError) {

@@ -13,6 +13,8 @@ import {
   LogOut,
   Calculator,
   UserPlus,
+  PlusCircle,
+  MinusCircle,
 } from "lucide-react";
 import wekaLogo from "@assets/WEKA_1756289094166.png";
 import dreamersLogo from "@assets/updated logo the dreamers_1756291084041.png";
@@ -24,6 +26,9 @@ const navigationItems = [
   { href: "/transactions", icon: DollarSign, label: "Transactions" },
   { href: "/loans", icon: FileText, label: "Loans" },
   { href: "/loan-calculator", icon: Calculator, label: "Loan Calculator" },
+  { href: "/submit-savings", icon: PlusCircle, label: "Submit Savings" },
+  { href: "/loan-payments", icon: MinusCircle, label: "Loan Payments" },
+  { href: "/loan-submission", icon: FileText, label: "Loan Submission" },
   { href: "/meetings", icon: Calendar, label: "Meetings" },
   { href: "/user-management", icon: UserPlus, label: "User Management" },
   { href: "/reports", icon: BarChart3, label: "Reports" },
