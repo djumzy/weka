@@ -46,11 +46,17 @@ interface AdminSidebarProps {
 
 export function AdminSidebar({ userRole }: AdminSidebarProps) {
   const [location] = useLocation();
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   
-  // Filter navigation items based on user role
+  // Determine the actual user role:
+  // 1. If userRole prop is provided (for group leaders), use it
+  // 2. If user is authenticated via API (admin), use 'admin'
+  // 3. Otherwise default to 'member'
+  const actualUserRole = userRole || (isAuthenticated ? 'admin' : 'member');
+  
+  // Filter navigation items based on actual user role
   const allowedItems = navigationItems.filter(item => 
-    item.roles.includes(userRole || 'member')
+    item.roles.includes(actualUserRole)
   );
 
   const handleLogout = async () => {

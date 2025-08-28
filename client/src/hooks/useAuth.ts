@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 export function useAuth() {
   const [memberSession, setMemberSession] = useState<any>(null);
 
-  // Check for member session first
+  // Check for member session
   useEffect(() => {
     const sessionData = localStorage.getItem('memberSession');
     if (sessionData) {
@@ -18,15 +18,24 @@ export function useAuth() {
     }
   }, []);
 
-  // Only make API calls if there's no member session
-  const { data: user, isLoading } = useQuery({
+  // Always try admin authentication first
+  const { data: adminUser, isLoading } = useQuery({
     queryKey: ["/api/auth/user"],
     retry: false,
-    enabled: !memberSession, // Disable API calls when member session exists
   });
 
-  // If member session exists, return member data as user
-  if (memberSession) {
+  // Priority: Admin authentication first, then member session
+  if (adminUser) {
+    // Admin is authenticated - return admin user
+    return {
+      user: adminUser,
+      isLoading: false,
+      isAuthenticated: true,
+    };
+  }
+
+  // If no admin auth but member session exists, return member data
+  if (!isLoading && memberSession) {
     return {
       user: memberSession.member,
       isLoading: false,
@@ -35,8 +44,8 @@ export function useAuth() {
   }
 
   return {
-    user,
+    user: adminUser,
     isLoading,
-    isAuthenticated: !!user,
+    isAuthenticated: !!adminUser,
   };
 }
