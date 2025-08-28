@@ -368,7 +368,8 @@ function LoanDetailsWidget({
         monthsElapsed: 0,
         monthlyBreakdown: [],
         monthsOverdue: 0,
-        daysSinceStart: 0
+        daysSinceStart: 0,
+        currentPeriodInterest: 0
       };
     }
 
@@ -376,34 +377,46 @@ function LoanDetailsWidget({
     const startDate = new Date(loanData.approvedDate);
     const daysSinceStart = Math.floor((now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
     
-    // Calculate compound interest immediately from loan submission (no grace period)
-    const monthsElapsed = Math.floor(daysSinceStart / 30);
+    // Calculate completed months (every 28 days = 1 month)
+    const monthsCompleted = Math.floor(daysSinceStart / 28);
+    const daysInCurrentPeriod = daysSinceStart % 28;
     
-    let currentAmount = borrowedAmount;
+    let runningPrincipal = borrowedAmount;
     let totalInterest = 0;
     const monthlyBreakdown = [];
 
-    // Apply compound interest immediately from loan submission
-    for (let month = 1; month <= monthsElapsed; month++) {
-      const monthlyInterest = currentAmount * (interestRate / 100);
+    // Calculate completed months - these go to Total Interest
+    for (let month = 1; month <= monthsCompleted; month++) {
+      const monthlyInterest = runningPrincipal * (interestRate / 100);
       totalInterest += monthlyInterest;
-      currentAmount += monthlyInterest;
+      runningPrincipal += monthlyInterest; // Compound the principal
       
       monthlyBreakdown.push({
         month,
-        principal: borrowedAmount,
+        principal: month === 1 ? borrowedAmount : runningPrincipal - monthlyInterest,
         interest: monthlyInterest,
-        totalAmount: currentAmount
+        totalAmount: runningPrincipal
       });
     }
+
+    // Calculate current period interest (partial month)
+    const currentPeriodInterest = daysInCurrentPeriod > 0 
+      ? (runningPrincipal * (interestRate / 100) * daysInCurrentPeriod / 28)
+      : 0;
+
+    // Current Amount Due = Current Principal + Current Period Interest
+    const currentAmount = runningPrincipal + currentPeriodInterest;
 
     return {
       currentAmount,
       totalInterest,
-      monthsElapsed,
+      monthsElapsed: monthsCompleted,
       monthlyBreakdown,
-      monthsOverdue: monthsElapsed,
-      daysSinceStart
+      monthsOverdue: monthsCompleted,
+      daysSinceStart,
+      currentPeriodInterest,
+      daysInCurrentPeriod,
+      currentPrincipal: runningPrincipal
     };
   };
 
@@ -428,6 +441,9 @@ function LoanDetailsWidget({
           <div className={`text-xl font-bold ${isOverdue ? 'text-red-700 dark:text-red-300' : 'text-orange-700 dark:text-orange-300'}`}>
             {formatCurrency(loanDetails.currentAmount)}
           </div>
+          <div className="text-xs mt-1 opacity-80">
+            Principal: {formatCurrency(loanDetails.currentPrincipal || borrowedAmount)} + Current Interest: {formatCurrency(loanDetails.currentPeriodInterest || 0)}
+          </div>
           {isOverdue && (
             <div className="flex items-center gap-1 mt-1">
               <AlertTriangle className="h-3 w-3" />
@@ -440,6 +456,9 @@ function LoanDetailsWidget({
           <div className="text-sm text-green-600 dark:text-green-400 font-medium">Total Interest</div>
           <div className="text-xl font-bold text-green-700 dark:text-green-300">
             {formatCurrency(loanDetails.totalInterest)}
+          </div>
+          <div className="text-xs mt-1 opacity-80">
+            Day {loanDetails.daysInCurrentPeriod || 0} of 28 (Current Period)
           </div>
         </div>
       </div>
@@ -465,7 +484,9 @@ function LoanDetailsWidget({
             ))}
           </div>
         ) : (
-          <div className="text-sm text-muted-foreground">No interest accrued yet (within 28-day grace period)</div>
+          <div className="text-sm text-muted-foreground">
+            No completed months yet. Current period: Day {loanDetails.daysInCurrentPeriod || 0} of 28
+          </div>
         )}
       </div>
     </div>
