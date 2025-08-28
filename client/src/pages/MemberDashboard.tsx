@@ -367,7 +367,8 @@ function LoanDetailsWidget({
         totalInterest: 0,
         monthsElapsed: 0,
         monthlyBreakdown: [],
-        monthsOverdue: 0
+        monthsOverdue: 0,
+        daysSinceStart: 0
       };
     }
 
@@ -375,16 +376,14 @@ function LoanDetailsWidget({
     const startDate = new Date(loanData.approvedDate);
     const daysSinceStart = Math.floor((now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
     
-    // Grace period is 28 days
-    const gracePeriodDays = 28;
-    const daysAfterGrace = Math.max(0, daysSinceStart - gracePeriodDays);
-    const monthsElapsed = Math.floor(daysAfterGrace / 30);
+    // Calculate compound interest immediately from loan submission (no grace period)
+    const monthsElapsed = Math.floor(daysSinceStart / 30);
     
     let currentAmount = borrowedAmount;
     let totalInterest = 0;
     const monthlyBreakdown = [];
 
-    // Only calculate compound interest after grace period
+    // Apply compound interest immediately from loan submission
     for (let month = 1; month <= monthsElapsed; month++) {
       const monthlyInterest = currentAmount * (interestRate / 100);
       totalInterest += monthlyInterest;
@@ -404,8 +403,7 @@ function LoanDetailsWidget({
       monthsElapsed,
       monthlyBreakdown,
       monthsOverdue: monthsElapsed,
-      daysSinceStart,
-      gracePeriodRemaining: Math.max(0, gracePeriodDays - daysSinceStart)
+      daysSinceStart
     };
   };
 
@@ -454,9 +452,6 @@ function LoanDetailsWidget({
         </h4>
         <div className="text-sm text-muted-foreground mb-2">
           Interest Rate: {interestRate}% per month • Days Since Loan: {loanDetails.daysSinceStart || 0}
-          {loanDetails.gracePeriodRemaining > 0 && (
-            <span className="text-green-600"> • Grace Period: {loanDetails.gracePeriodRemaining} days remaining</span>
-          )}
         </div>
         
         {loanDetails.monthlyBreakdown.length > 0 ? (
