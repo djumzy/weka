@@ -792,6 +792,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get all members for a group (with optional role filtering)
+  app.get('/api/groups/:id/members', isAuthenticated, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { role } = req.query;
+      
+      let members = await storage.getGroupMembers(id);
+      
+      // Filter by role if specified
+      if (role && typeof role === 'string') {
+        members = members.filter(member => member.groupRole === role);
+      }
+      
+      res.json(members);
+    } catch (error) {
+      console.error("Error fetching group members:", error);
+      res.status(500).json({ message: "Failed to fetch group members" });
+    }
+  });
+
   // Get members with active loans for a group
   app.get('/api/groups/:id/members-with-loans', isAuthenticated, async (req, res) => {
     try {
