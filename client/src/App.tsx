@@ -26,49 +26,29 @@ import Reports from "@/pages/Reports";
 import Reset from "@/pages/Reset";
 
 function Router() {
-  const [memberSession, setMemberSession] = useState<any>(null);
-  const [authChecked, setAuthChecked] = useState(false);
+  const { isAuthenticated, isLoading, user } = useAuth();
 
-  // Always call useAuth hook - never call hooks conditionally
-  const { isAuthenticated, isLoading } = useAuth();
-
-  // Load member session and mark auth as checked
-  useEffect(() => {
-    const sessionData = localStorage.getItem('memberSession');
-    if (sessionData) {
-      try {
-        const session = JSON.parse(sessionData);
-        setMemberSession(session);
-      } catch (error) {
-        console.error('Invalid member session:', error);
-        localStorage.removeItem('memberSession');
-      }
-    }
-    setAuthChecked(true);
-  }, []);
-
-  // Check if user has leadership role that can access navigation
-  const isLeadershipRole = memberSession && ['chairman', 'secretary', 'finance'].includes(memberSession.member?.groupRole);
-  const hasNavigationAccess = isAuthenticated || isLeadershipRole;
-
-  // If still checking auth, show loading
-  if (!authChecked || (isLoading && !memberSession)) {
-    return <div>Loading...</div>;
+  // If still loading authentication, show loading
+  if (isLoading) {
+    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
   }
 
-  // If no access to protected routes, only show public routes
-  if (!hasNavigationAccess) {
+  // If not authenticated, only show public routes
+  if (!isAuthenticated) {
     return (
       <Switch>
         <Route path="/reset" component={Reset} />
         <Route path="/login" component={Login} />
-        <Route path="/member-dashboard/:memberId" component={MemberDashboard} />
         <Route component={Login} />
       </Switch>
     );
   }
 
-  // User has access - show all routes
+  // User is authenticated - determine which routes they can access
+  const isAdmin = user?.role === 'admin';
+  const isFieldStaff = user?.role === 'field';
+  const isMember = !user?.role; // Members don't have a role field
+  
   return (
     <Switch>
       {/* Reset page for clearing corrupted sessions */}
@@ -77,21 +57,25 @@ function Router() {
       {/* Unified login page */}
       <Route path="/login" component={Login} />
       
-      {/* Member dashboard - accessible with member session */}
-      <Route path="/member-dashboard/:memberId" component={MemberDashboard} />
+      {/* Member-specific routes */}
+      {isMember && (
+        <Route path="/member-dashboard/:memberId" component={MemberDashboard} />
+      )}
       
       {/* Field staff dashboard */}
-      <Route path="/field-dashboard" component={FieldDashboard} />
+      {isFieldStaff && (
+        <Route path="/field-dashboard" component={FieldDashboard} />
+      )}
       
-      {/* Routes accessible to both admins and group leaders */}
-      <Route path="/" component={isAuthenticated ? Dashboard : () => <MemberDashboard />} />
+      {/* Routes accessible to admins and some members */}
+      <Route path="/" component={isAdmin ? Dashboard : (isMember ? MemberDashboard : FieldDashboard)} />
       <Route path="/members" component={Members} />
       <Route path="/submit-savings" component={SubmitSavingsPage} />
       <Route path="/loan-payments" component={LoanPaymentsPage} />
       <Route path="/loan-submission" component={LoanSubmissionPage} />
       
       {/* Admin-only routes */}
-      {isAuthenticated && (
+      {isAdmin && (
         <>
           <Route path="/groups" component={Groups} />
           <Route path="/groups/:groupId" component={GroupDetails} />
