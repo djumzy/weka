@@ -798,29 +798,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { id } = req.params;
       const { role } = req.query;
       
-      console.log(`Fetching members for group: ${id}${role ? `, filtered by role: ${role}` : ''}`);
       
       let members = await storage.getGroupMembers(id);
-      console.log(`Found ${members.length} members for group ${id}`);
       
-      // Debug log first member structure
-      if (members.length > 0) {
-        console.log('Sample member data (raw):', members[0]);
-        console.log('Sample member data (formatted):', {
-          id: members[0].id,
-          firstName: members[0].firstName,
-          lastName: members[0].lastName,
-          groupRole: members[0].groupRole,
-          first_name: members[0].first_name,
-          last_name: members[0].last_name,
-          group_role: members[0].group_role
-        });
-      }
       
       // Filter by role if specified
       if (role && typeof role === 'string') {
         members = members.filter(member => member.groupRole === role);
-        console.log(`After role filter, ${members.length} members remain`);
       }
       
       res.json(members);

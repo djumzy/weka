@@ -46,6 +46,13 @@ export default function SubmitSavingsPage() {
   // Check if user is leadership role
   const isLeadershipRole = memberSession && ['chairman', 'secretary', 'finance'].includes(memberSession.member?.groupRole);
 
+  // Auto-select group for leadership roles
+  useEffect(() => {
+    if (isLeadershipRole && memberSession?.member?.groupId && !selectedGroup) {
+      setSelectedGroup(memberSession.member.groupId);
+    }
+  }, [isLeadershipRole, memberSession, selectedGroup]);
+
   // Fetch groups (only for admin users)
   const { data: groups = [] } = useQuery({
     queryKey: ["/api/groups"],
@@ -56,9 +63,6 @@ export default function SubmitSavingsPage() {
   const { data: members = [] } = useQuery({
     queryKey: ["/api/groups", selectedGroup, "members"],
     enabled: !!selectedGroup,
-    onSuccess: (data) => {
-      console.log('Members data received:', data); // Debug log
-    }
   });
 
   const submitSavingsMutation = useMutation({
@@ -172,75 +176,23 @@ export default function SubmitSavingsPage() {
               <div className="space-y-4">
                 <Label htmlFor="member-select">Select Member</Label>
                 
-                {/* Role-based member selection */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                  <div>
-                    <Label className="text-sm font-medium">Chairman</Label>
-                    <Select value={selectedMember} onValueChange={setSelectedMember}>
-                      <SelectTrigger className="h-8 text-xs">
-                        <SelectValue placeholder="Select chairman" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {members.filter((member: any) => member.groupRole === 'chairman').map((member: any) => {
-                          console.log('Chairman member:', member); // Debug log
-                          return (
-                            <SelectItem key={member.id} value={member.id}>
-                              {member.firstName} {member.lastName}
-                            </SelectItem>
-                          );
-                        })}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div>
-                    <Label className="text-sm font-medium">Secretary</Label>
-                    <Select value={selectedMember} onValueChange={setSelectedMember}>
-                      <SelectTrigger className="h-8 text-xs">
-                        <SelectValue placeholder="Select secretary" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {members.filter((member: any) => member.groupRole === 'secretary').map((member: any) => (
-                          <SelectItem key={member.id} value={member.id}>
-                            {member.firstName} {member.lastName}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div>
-                    <Label className="text-sm font-medium">Finance</Label>
-                    <Select value={selectedMember} onValueChange={setSelectedMember}>
-                      <SelectTrigger className="h-8 text-xs">
-                        <SelectValue placeholder="Select finance" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {members.filter((member: any) => member.groupRole === 'finance').map((member: any) => (
-                          <SelectItem key={member.id} value={member.id}>
-                            {member.firstName} {member.lastName}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div>
-                    <Label className="text-sm font-medium">Members</Label>
-                    <Select value={selectedMember} onValueChange={setSelectedMember}>
-                      <SelectTrigger className="h-8 text-xs">
-                        <SelectValue placeholder="Select member" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {members.filter((member: any) => member.groupRole === 'member').map((member: any) => (
-                          <SelectItem key={member.id} value={member.id}>
-                            {member.firstName} {member.lastName}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
+                {/* Single searchable dropdown for all members */}
+                <Select value={selectedMember} onValueChange={setSelectedMember}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a member from the group" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {members.map((member: any) => {
+                      const memberName = `${member.firstName || 'N/A'} ${member.lastName || 'N/A'}`; 
+                      const memberRole = member.groupRole ? ` (${member.groupRole})` : '';
+                      return (
+                        <SelectItem key={member.id} value={member.id}>
+                          {memberName}{memberRole}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
 
                 {/* Show selected member details */}
                 {selectedMember && members.find((m: any) => m.id === selectedMember) && (
