@@ -56,6 +56,9 @@ export default function SubmitSavingsPage() {
   const { data: members = [] } = useQuery({
     queryKey: ["/api/groups", selectedGroup, "members"],
     enabled: !!selectedGroup,
+    onSuccess: (data) => {
+      console.log('Members data received:', data); // Debug log
+    }
   });
 
   const submitSavingsMutation = useMutation({
@@ -178,11 +181,14 @@ export default function SubmitSavingsPage() {
                         <SelectValue placeholder="Select chairman" />
                       </SelectTrigger>
                       <SelectContent>
-                        {members.filter((member: any) => member.groupRole === 'chairman').map((member: any) => (
-                          <SelectItem key={member.id} value={member.id}>
-                            {member.firstName} {member.lastName}
-                          </SelectItem>
-                        ))}
+                        {members.filter((member: any) => member.groupRole === 'chairman').map((member: any) => {
+                          console.log('Chairman member:', member); // Debug log
+                          return (
+                            <SelectItem key={member.id} value={member.id}>
+                              {member.firstName} {member.lastName}
+                            </SelectItem>
+                          );
+                        })}
                       </SelectContent>
                     </Select>
                   </div>
