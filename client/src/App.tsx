@@ -26,10 +26,13 @@ import Reports from "@/pages/Reports";
 import Reset from "@/pages/Reset";
 
 function Router() {
-  const { isAuthenticated, isLoading } = useAuth();
   const [memberSession, setMemberSession] = useState<any>(null);
+  const [authChecked, setAuthChecked] = useState(false);
 
-  // Load member session
+  // Always call useAuth hook - never call hooks conditionally
+  const { isAuthenticated, isLoading } = useAuth();
+
+  // Load member session and mark auth as checked
   useEffect(() => {
     const sessionData = localStorage.getItem('memberSession');
     if (sessionData) {
@@ -41,17 +44,31 @@ function Router() {
         localStorage.removeItem('memberSession');
       }
     }
+    setAuthChecked(true);
   }, []);
 
   // Check if user has leadership role that can access navigation
   const isLeadershipRole = memberSession && ['chairman', 'secretary', 'finance'].includes(memberSession.member?.groupRole);
   const hasNavigationAccess = isAuthenticated || isLeadershipRole;
 
-  // If loading or no access, show login page - don't trigger API calls
-  if (isLoading && !memberSession) {
+  // If still checking auth, show loading
+  if (!authChecked || (isLoading && !memberSession)) {
     return <div>Loading...</div>;
   }
 
+  // If no access to protected routes, only show public routes
+  if (!hasNavigationAccess) {
+    return (
+      <Switch>
+        <Route path="/reset" component={Reset} />
+        <Route path="/login" component={Login} />
+        <Route path="/member-dashboard/:memberId" component={MemberDashboard} />
+        <Route component={Login} />
+      </Switch>
+    );
+  }
+
+  // User has access - show all routes
   return (
     <Switch>
       {/* Reset page for clearing corrupted sessions */}
@@ -66,32 +83,29 @@ function Router() {
       {/* Field staff dashboard */}
       <Route path="/field-dashboard" component={FieldDashboard} />
       
-      {isLoading || !hasNavigationAccess ? (
-        <Route component={Login} />
-      ) : (
+      {/* Routes accessible to both admins and group leaders */}
+      <Route path="/" component={isAuthenticated ? Dashboard : () => <MemberDashboard />} />
+      <Route path="/members" component={Members} />
+      <Route path="/submit-savings" component={SubmitSavingsPage} />
+      <Route path="/loan-payments" component={LoanPaymentsPage} />
+      <Route path="/loan-submission" component={LoanSubmissionPage} />
+      
+      {/* Admin-only routes */}
+      {isAuthenticated && (
         <>
-          {/* Routes accessible to both admins and group leaders */}
-          <Route path="/" component={isAuthenticated ? Dashboard : () => <MemberDashboard />} />
-          <Route path="/members" component={Members} />
-          <Route path="/submit-savings" component={SubmitSavingsPage} />
-          <Route path="/loan-payments" component={LoanPaymentsPage} />
-          <Route path="/loan-submission" component={LoanSubmissionPage} />
-          
-          {/* Admin-only routes */}
-          {isAuthenticated && (
-            <>
-              <Route path="/groups" component={Groups} />
-              <Route path="/groups/:groupId" component={GroupDetails} />
-              <Route path="/transactions" component={Transactions} />
-              <Route path="/loans" component={Loans} />
-              <Route path="/loan-calculator" component={LoanCalculator} />
-              <Route path="/meetings" component={Meetings} />
-              <Route path="/user-management" component={UserManagement} />
-              <Route path="/reports" component={Reports} />
-            </>
-          )}
+          <Route path="/groups" component={Groups} />
+          <Route path="/groups/:groupId" component={GroupDetails} />
+          <Route path="/transactions" component={Transactions} />
+          <Route path="/loans" component={Loans} />
+          <Route path="/loan-calculator" component={LoanCalculator} />
+          <Route path="/meetings" component={Meetings} />
+          <Route path="/user-management" component={UserManagement} />
+          <Route path="/reports" component={Reports} />
         </>
       )}
+      
+      {/* 404 Not Found */}
+      <Route component={NotFound} />
     </Switch>
   );
 }
