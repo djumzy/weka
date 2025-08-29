@@ -684,7 +684,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           type: 'deposit',
           amount: savingsAmount.toString(),
           description: `Savings deposit submitted by ${submittedBy}`,
-          createdBy: req.userId || memberId
+          createdBy: '78d710c9-48fb-4e3b-8caa-d9f14fc7a57e' // Use system admin user ID for member transactions
         });
         
         // Update member's savings balance
@@ -705,7 +705,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           type: 'welfare_payment',
           amount: welfareAmount.toString(),
           description: `Welfare payment submitted by ${submittedBy}`,
-          createdBy: req.userId || memberId
+          createdBy: '78d710c9-48fb-4e3b-8caa-d9f14fc7a57e' // Use system admin user ID for member transactions
         });
 
         // Update member's welfare balance
@@ -724,7 +724,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           amount: (savingsAmount + welfareAmount).toString(),
           transactionType: 'deposit',
           description: `Savings and welfare deposits submitted by ${submittedBy}`,
-          recordedBy: req.userId || memberId
+          recordedBy: '78d710c9-48fb-4e3b-8caa-d9f14fc7a57e' // Use system admin user ID
         });
       }
 

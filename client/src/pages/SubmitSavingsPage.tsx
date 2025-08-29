@@ -162,12 +162,15 @@ export default function SubmitSavingsPage() {
               </div>
             )}
 
-            {/* Show group info for leadership users */}
+            {/* Show read-only group field for leadership users */}
             {isLeadershipRole && memberSession && (
-              <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
-                <div className="text-sm">
-                  <div><span className="font-medium">Group:</span> {memberSession.member?.groupName || 'Unknown Group'}</div>
-                  <div><span className="font-medium">Your Role:</span> {memberSession.member?.groupRole}</div>
+              <div>
+                <Label htmlFor="group-display">Select Group</Label>
+                <div className="p-3 bg-gray-100 dark:bg-gray-800 rounded-md border">
+                  <div className="text-sm">
+                    <div className="font-medium">{memberSession.member?.groupName || 'Unknown Group'}</div>
+                    <div className="text-xs text-gray-500 mt-1">Your Role: {memberSession.member?.groupRole}</div>
+                  </div>
                 </div>
               </div>
             )}
@@ -182,7 +185,7 @@ export default function SubmitSavingsPage() {
                     <SelectValue placeholder="Select a member from the group" />
                   </SelectTrigger>
                   <SelectContent>
-                    {members.map((member: any) => {
+                    {(members as any[]).map((member: any) => {
                       const memberName = `${member.firstName || 'N/A'} ${member.lastName || 'N/A'}`; 
                       const memberRole = member.groupRole ? ` (${member.groupRole})` : '';
                       return (
@@ -195,14 +198,14 @@ export default function SubmitSavingsPage() {
                 </Select>
 
                 {/* Show selected member details */}
-                {selectedMember && members.find((m: any) => m.id === selectedMember) && (
+                {selectedMember && (members as any[]).find((m: any) => m.id === selectedMember) && (
                   <div className="p-3 bg-gray-50 rounded-lg">
                     <p className="text-sm">
                       <span className="font-medium">Selected:</span> {' '}
-                      {members.find((m: any) => m.id === selectedMember)?.firstName} {' '}
-                      {members.find((m: any) => m.id === selectedMember)?.lastName} {' '}
-                      ({members.find((m: any) => m.id === selectedMember)?.groupRole}) - {' '}
-                      Current Savings: {formatCurrency(parseFloat(members.find((m: any) => m.id === selectedMember)?.savingsBalance || '0'))}
+                      {(members as any[]).find((m: any) => m.id === selectedMember)?.firstName} {' '}
+                      {(members as any[]).find((m: any) => m.id === selectedMember)?.lastName} {' '}
+                      ({(members as any[]).find((m: any) => m.id === selectedMember)?.groupRole}) - {' '}
+                      Current Savings: {formatCurrency(parseFloat((members as any[]).find((m: any) => m.id === selectedMember)?.savingsBalance || '0'))}
                     </p>
                   </div>
                 )}
