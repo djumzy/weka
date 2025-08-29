@@ -562,9 +562,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const loan = await storage.createLoan(loanWithCalculations);
       
       // Update member's current loan amount when loan is approved
+      // Set the full amount due (principal + interest) from day 1
       const member = await storage.getMember(loan.memberId);
       if (member) {
-        const currentLoan = parseFloat(member.currentLoan) + principal;
+        const currentLoan = parseFloat(member.currentLoan) + totalRepayment; // Full amount due immediately
         await storage.updateMember(loan.memberId, {
           currentLoan: currentLoan.toString()
         });
@@ -575,8 +576,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         groupId: loanData.groupId,
         memberId: loanData.memberId,
         type: 'loan_disbursement',
-        amount: loanData.amount,
-        description: `Loan disbursement - ${loanData.purpose}`,
+        amount: loanData.amount, // Only principal amount is disbursed from cash box
+        description: `Loan disbursement - ${loanData.purpose} (Total due: ${totalRepayment.toFixed(2)})`,
         createdBy: '78d710c9-48fb-4e3b-8caa-d9f14fc7a57e' // Use system admin user ID
       });
       
