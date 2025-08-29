@@ -56,12 +56,6 @@ export default function LoanSubmissionPage() {
   // Fetch all members for selected group (regardless of role)
   const { data: members = [] } = useQuery({
     queryKey: ["/api/groups", selectedGroup, "members"],
-    queryFn: async () => {
-      if (!selectedGroup) return [];
-      const response = await fetch(`/api/groups/${selectedGroup}/members`);
-      if (!response.ok) throw new Error('Failed to fetch members');
-      return response.json();
-    },
     enabled: !!selectedGroup,
   });
 
