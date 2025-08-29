@@ -805,11 +805,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Debug log first member structure
       if (members.length > 0) {
-        console.log('Sample member data:', {
+        console.log('Sample member data (raw):', members[0]);
+        console.log('Sample member data (formatted):', {
           id: members[0].id,
           firstName: members[0].firstName,
           lastName: members[0].lastName,
-          groupRole: members[0].groupRole
+          groupRole: members[0].groupRole,
+          first_name: members[0].first_name,
+          last_name: members[0].last_name,
+          group_role: members[0].group_role
         });
       }
       
