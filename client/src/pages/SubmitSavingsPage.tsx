@@ -172,6 +172,7 @@ export default function SubmitSavingsPage() {
                     <div className="text-xs text-gray-500 mt-1">Your Role: {memberSession.member?.groupRole}</div>
                   </div>
                 </div>
+                <p className="text-xs text-gray-500 mt-1">This group is automatically selected based on your membership.</p>
               </div>
             )}
 

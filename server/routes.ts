@@ -172,8 +172,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       (req.session as any).memberId = member.id;
       (req.session as any).userRole = 'member';
       
-      // Get group stats for the member
+      // Get group stats and group info for the member
       const groupStats = await storage.getGroupStats(member.groupId);
+      const group = await storage.getGroup(member.groupId);
       
       res.json({
         userType: 'member',
@@ -183,6 +184,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           lastName: member.lastName,
           groupRole: member.groupRole,
           groupId: member.groupId,
+          groupName: group?.name || 'Unknown Group', // Include group name
           totalShares: member.totalShares,
           savingsBalance: member.savingsBalance,
           welfareBalance: member.welfareBalance,
@@ -193,6 +195,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error during member login:", error);
       res.status(500).json({ message: "Login failed" });
+    }
+  });
+
+  // Member session endpoint to get current logged-in member info
+  app.get('/api/member-session', async (req: any, res) => {
+    try {
+      const memberId = (req.session as any)?.memberId;
+      if (!memberId) {
+        return res.status(401).json({ message: "No member session found" });
+      }
+
+      const member = await storage.getMember(memberId);
+      if (!member) {
+        return res.status(404).json({ message: "Member not found" });
+      }
+
+      // Get group stats and group info for the member
+      const groupStats = await storage.getGroupStats(member.groupId);
+      const group = await storage.getGroup(member.groupId);
+
+      res.json({
+        userType: 'member',
+        member: {
+          id: member.id,
+          firstName: member.firstName,
+          lastName: member.lastName,
+          groupRole: member.groupRole,
+          groupId: member.groupId,
+          groupName: group?.name || 'Unknown Group', // Include group name
+          totalShares: member.totalShares,
+          savingsBalance: member.savingsBalance,
+          welfareBalance: member.welfareBalance,
+          currentLoan: member.currentLoan
+        },
+        groupStats
+      });
+    } catch (error) {
+      console.error("Error fetching member session:", error);
+      res.status(500).json({ message: "Failed to fetch member session" });
     }
   });
 
