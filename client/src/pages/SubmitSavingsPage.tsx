@@ -8,8 +8,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency } from "@/lib/utils";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { PlusCircle } from "lucide-react";
+import { PlusCircle, ArrowLeft } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useLocation } from "wouter";
 
 export default function SubmitSavingsPage() {
   const [selectedGroup, setSelectedGroup] = useState('');
@@ -19,6 +20,7 @@ export default function SubmitSavingsPage() {
   const [memberSession, setMemberSession] = useState<any>(null);
   const { toast } = useToast();
   const { isAuthenticated } = useAuth();
+  const [, setLocation] = useLocation();
 
   // Load member session for leadership roles
   useEffect(() => {
@@ -129,9 +131,19 @@ export default function SubmitSavingsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-2">
-        <PlusCircle className="h-6 w-6" />
-        <h1 className="text-2xl font-bold">Submit Member Savings & Welfare</h1>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <PlusCircle className="h-6 w-6" />
+          <h1 className="text-2xl font-bold">Submit Member Savings & Welfare</h1>
+        </div>
+        <Button 
+          variant="outline" 
+          onClick={() => setLocation('/dashboard')}
+          className="flex items-center gap-2"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to Dashboard
+        </Button>
       </div>
 
       <Card>

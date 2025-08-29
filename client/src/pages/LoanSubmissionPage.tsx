@@ -8,8 +8,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency } from "@/lib/utils";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { FileText } from "lucide-react";
+import { FileText, ArrowLeft } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useLocation } from "wouter";
 
 export default function LoanSubmissionPage() {
   const [selectedGroup, setSelectedGroup] = useState('');
@@ -20,6 +21,7 @@ export default function LoanSubmissionPage() {
   const [memberSession, setMemberSession] = useState<any>(null);
   const { toast } = useToast();
   const { isAuthenticated } = useAuth();
+  const [, setLocation] = useLocation();
 
   // Load member session for leadership roles
   useEffect(() => {
@@ -140,9 +142,19 @@ export default function LoanSubmissionPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-2">
-        <FileText className="h-6 w-6" />
-        <h1 className="text-2xl font-bold">Submit Loan for Group Members</h1>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <FileText className="h-6 w-6" />
+          <h1 className="text-2xl font-bold">Submit Loan for Group Members</h1>
+        </div>
+        <Button 
+          variant="outline" 
+          onClick={() => setLocation('/dashboard')}
+          className="flex items-center gap-2"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to Dashboard
+        </Button>
       </div>
 
       <Card>

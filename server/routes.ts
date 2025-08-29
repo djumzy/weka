@@ -533,18 +533,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/loans', isAuthenticated, async (req, res) => {
     try {
       const loanData = insertLoanSchema.parse(req.body);
-      const loan = await storage.createLoan(loanData);
       
-      // Update member's current loan amount when loan is approved/active
-      if (loan.status === 'approved' || loan.status === 'active') {
-        const member = await storage.getMember(loan.memberId);
-        if (member) {
-          const currentLoan = parseFloat(member.currentLoan) + parseFloat(loan.amount);
-          await storage.updateMember(loan.memberId, {
-            currentLoan: currentLoan.toString()
-          });
-        }
+      // Get group info to calculate interest
+      const group = await storage.getGroup(loanData.groupId);
+      if (!group) {
+        return res.status(404).json({ message: "Group not found" });
       }
+      
+      // Calculate interest amount and total repayment
+      const principal = parseFloat(loanData.amount);
+      const monthlyInterestRate = parseFloat(group.interestRate || '0') / 100; // Convert percentage
+      const months = loanData.repaymentPeriodMonths;
+      
+      // Calculate total interest for the loan period
+      const totalInterest = principal * monthlyInterestRate * months;
+      const totalRepayment = principal + totalInterest;
+      const monthlyPayment = totalRepayment / months;
+      
+      // Create loan with calculated values
+      const loanWithCalculations = {
+        ...loanData,
+        status: 'approved' as const, // Auto-approve loans submitted by leadership
+        interestAmount: totalInterest.toString(),
+        totalAmount: totalRepayment.toString(),
+        monthlyPayment: monthlyPayment.toString()
+      };
+      
+      const loan = await storage.createLoan(loanWithCalculations);
+      
+      // Update member's current loan amount when loan is approved
+      const member = await storage.getMember(loan.memberId);
+      if (member) {
+        const currentLoan = parseFloat(member.currentLoan) + principal;
+        await storage.updateMember(loan.memberId, {
+          currentLoan: currentLoan.toString()
+        });
+      }
+      
+      // Create loan transaction record
+      await storage.createTransaction({
+        groupId: loanData.groupId,
+        memberId: loanData.memberId,
+        type: 'loan_disbursement',
+        amount: loanData.amount,
+        description: `Loan disbursement - ${loanData.purpose}`,
+        createdBy: '78d710c9-48fb-4e3b-8caa-d9f14fc7a57e' // Use system admin user ID
+      });
+      
+      // Update cash in box (loan disbursement reduces cash)
+      await storage.createCashboxEntry({
+        groupId: loanData.groupId,
+        amount: loanData.amount,
+        transactionType: 'withdrawal',
+        description: `Loan disbursement to member`,
+        recordedBy: '78d710c9-48fb-4e3b-8caa-d9f14fc7a57e'
+      });
       
       res.json(loan);
     } catch (error) {

@@ -59,20 +59,27 @@ export default function MemberDashboard() {
   const [, setLocation] = useLocation();
   const [memberSession, setMemberSession] = useState<MemberSession | null>(null);
 
-  // Load member session from localStorage
+  // Load member session from API to get fresh data
   useEffect(() => {
-    const sessionData = localStorage.getItem('memberSession');
-    if (sessionData) {
-      const session = JSON.parse(sessionData);
-      setMemberSession(session);
-    } else {
-      // Redirect to login if no session
-      setLocation('/member-login');
-    }
+    fetch('/api/member-session')
+      .then(response => {
+        if (response.ok) {
+          return response.json();
+        }
+        throw new Error('No session found');
+      })
+      .then(session => {
+        setMemberSession(session);
+      })
+      .catch(error => {
+        console.log('Member session not available:', error.message);
+        // Redirect to login if no session
+        setLocation('/member-login');
+      });
   }, [setLocation]);
 
-  // Don't make API calls for member sessions - use localStorage data instead
-  const isLoading = false;
+  // Loading state while fetching fresh data
+  const isLoading = !memberSession;
   const dashboardData = memberSession;
 
   const handleLogout = () => {
