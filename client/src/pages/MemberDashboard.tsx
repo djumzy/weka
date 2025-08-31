@@ -76,8 +76,8 @@ export default function MemberDashboard() {
       })
       .catch(error => {
         console.log('Member session not available:', error.message);
-        // Redirect to login if no session
-        setLocation('/member-login');
+        // Add small delay to avoid flash, then redirect
+        setTimeout(() => setLocation('/member-login'), 500);
       });
   }, [setLocation]);
 
@@ -92,8 +92,11 @@ export default function MemberDashboard() {
 
   if (!memberSession || isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-muted-foreground">Loading dashboard...</div>
+      <div className="flex items-center justify-center min-h-screen bg-background">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <div className="text-muted-foreground">Loading dashboard...</div>
+        </div>
       </div>
     );
   }
@@ -147,78 +150,78 @@ export default function MemberDashboard() {
       </div>
 
       {/* Personal Stats - Mobile Responsive */}
-      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs sm:text-sm font-medium flex items-center gap-1 sm:gap-2">
-              <Share className="h-3 w-3 sm:h-4 sm:w-4" />
+          <CardHeader className="pb-1 pt-3">
+            <CardTitle className="text-xs font-medium flex items-center gap-1">
+              <Share className="h-3 w-3" />
               <span className="hidden sm:inline">My Shares</span>
               <span className="sm:hidden">Shares</span>
             </CardTitle>
           </CardHeader>
-          <CardContent className="pt-2">
-            <div className="text-lg sm:text-2xl font-bold text-blue-600">
+          <CardContent className="pt-1 pb-3">
+            <div className="text-xl sm:text-2xl font-bold text-blue-600 leading-tight">
               {Math.floor(parseFloat(member.savingsBalance || '0') / (groupStats.shareValue || 1))}
             </div>
-            <div className="text-xs text-muted-foreground">
+            <div className="text-xs text-muted-foreground mt-1 leading-tight">
               <span className="hidden sm:inline">@ {formatCurrency(groupStats.shareValue)} each</span>
-              <span className="sm:hidden">{formatCurrency(groupStats.shareValue)}/share</span>
+              <span className="sm:hidden">@ {formatCurrency(groupStats.shareValue)}</span>
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs sm:text-sm font-medium flex items-center gap-1 sm:gap-2">
-              <DollarSign className="h-3 w-3 sm:h-4 sm:w-4" />
+          <CardHeader className="pb-1 pt-3">
+            <CardTitle className="text-xs font-medium flex items-center gap-1">
+              <DollarSign className="h-3 w-3" />
               <span className="hidden sm:inline">My Savings</span>
               <span className="sm:hidden">Savings</span>
             </CardTitle>
           </CardHeader>
-          <CardContent className="pt-2">
-            <div className="text-lg sm:text-2xl font-bold text-primary">
+          <CardContent className="pt-1 pb-3">
+            <div className="text-lg sm:text-2xl font-bold text-primary leading-tight">
               {formatCurrency(parseFloat(member.savingsBalance || '0'))}
             </div>
-            <div className="text-xs text-muted-foreground">
+            <div className="text-xs text-muted-foreground mt-1 leading-tight">
               {Math.floor(parseFloat(member.savingsBalance || '0') / (groupStats.shareValue || 1))} shares
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs sm:text-sm font-medium flex items-center gap-1 sm:gap-2">
-              <Heart className="h-3 w-3 sm:h-4 sm:w-4" />
+          <CardHeader className="pb-1 pt-3">
+            <CardTitle className="text-xs font-medium flex items-center gap-1">
+              <Heart className="h-3 w-3" />
               <span className="hidden sm:inline">My Welfare</span>
               <span className="sm:hidden">Welfare</span>
             </CardTitle>
           </CardHeader>
-          <CardContent className="pt-2">
-            <div className="text-lg sm:text-2xl font-bold text-green-600">
+          <CardContent className="pt-1 pb-3">
+            <div className="text-lg sm:text-2xl font-bold text-green-600 leading-tight">
               {formatCurrency(parseFloat(member.welfareBalance || '0'))}
             </div>
-            <div className="text-xs text-muted-foreground">
-              <span className="hidden sm:inline">USh {member.welfareBalance || 0} expected</span>
+            <div className="text-xs text-muted-foreground mt-1 leading-tight">
+              <span className="hidden sm:inline">Expected</span>
               <span className="sm:hidden">Expected</span>
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs sm:text-sm font-medium flex items-center gap-1 sm:gap-2">
-              <Wallet className="h-3 w-3 sm:h-4 sm:w-4" />
+          <CardHeader className="pb-1 pt-3">
+            <CardTitle className="text-xs font-medium flex items-center gap-1">
+              <Wallet className="h-3 w-3" />
               <span className="hidden sm:inline">Current Amount Due</span>
               <span className="sm:hidden">Loan Due</span>
             </CardTitle>
           </CardHeader>
-          <CardContent className="pt-2">
-            <div className="text-lg sm:text-2xl font-bold text-orange-600">
+          <CardContent className="pt-1 pb-3">
+            <div className="text-lg sm:text-2xl font-bold text-orange-600 leading-tight">
               {formatCurrency(parseFloat(member.currentLoan || '0'))}
             </div>
-            <div className="text-xs text-muted-foreground">
+            <div className="text-xs text-muted-foreground mt-1 leading-tight">
               <span className="hidden sm:inline">Principal + Interest</span>
-              <span className="sm:hidden">Principal + Interest</span>
+              <span className="sm:hidden">P + Interest</span>
             </div>
           </CardContent>
         </Card>
