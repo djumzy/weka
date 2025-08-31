@@ -37,10 +37,15 @@ interface MemberSession {
     lastName: string;
     groupRole: string;
     groupId: string;
+    groupName?: string;
     totalShares: number;
     savingsBalance: string;
     welfareBalance: string;
     currentLoan: string;
+  };
+  group?: {
+    id: string;
+    name: string;
   };
   groupStats: {
     totalMembers: number;
@@ -64,6 +69,20 @@ export default function MemberDashboard() {
 
   // Load member session from API to get fresh data
   useEffect(() => {
+    // First try localStorage for faster loading
+    const cachedSession = localStorage.getItem('memberSession');
+    if (cachedSession) {
+      try {
+        const parsed = JSON.parse(cachedSession);
+        if (parsed?.member) {
+          setMemberSession(parsed);
+        }
+      } catch (e) {
+        console.log('Invalid cached session');
+      }
+    }
+
+    // Then fetch fresh data from API
     fetch('/api/member-session', { cache: 'no-cache' })
       .then(response => {
         if (response.ok) {
@@ -73,11 +92,14 @@ export default function MemberDashboard() {
       })
       .then(session => {
         setMemberSession(session);
+        localStorage.setItem('memberSession', JSON.stringify(session));
       })
       .catch(error => {
         console.log('Member session not available:', error.message);
-        // Add small delay to avoid flash, then redirect
-        setTimeout(() => setLocation('/member-login'), 500);
+        // Only redirect if no cached session either
+        if (!cachedSession) {
+          setTimeout(() => setLocation('/login'), 100);
+        }
       });
   }, [setLocation]);
 
@@ -87,15 +109,16 @@ export default function MemberDashboard() {
 
   const handleLogout = () => {
     localStorage.removeItem('memberSession');
-    setLocation('/member-login');
+    setLocation('/login');
   };
 
-  if (!memberSession || isLoading) {
+  if (!memberSession) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-background">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <div className="text-muted-foreground">Loading dashboard...</div>
+          <div className="text-muted-foreground">Loading your dashboard...</div>
+          <div className="text-xs text-muted-foreground mt-2">If this takes too long, you may need to login again</div>
         </div>
       </div>
     );
@@ -134,9 +157,9 @@ export default function MemberDashboard() {
                 {member.groupRole}
               </Badge>
               <OfflineIndicator />
-              {group && (
+              {(group?.name || member.groupName) && (
                 <span className="text-sm text-muted-foreground">
-                  • {group.name}
+                  • {group?.name || member.groupName}
                 </span>
               )}
             </div>
