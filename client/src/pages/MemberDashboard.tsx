@@ -154,7 +154,7 @@ export default function MemberDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-blue-600">
-              {member.totalShares || 0}
+              {Math.floor(parseFloat(member.savingsBalance || '0') / (groupStats.shareValue || 1))}
             </div>
             <div className="text-xs text-muted-foreground">
               @ {formatCurrency(groupStats.shareValue)} each
@@ -174,7 +174,7 @@ export default function MemberDashboard() {
               {formatCurrency(parseFloat(member.savingsBalance || '0'))}
             </div>
             <div className="text-xs text-muted-foreground">
-              {member.totalShares || 0} shares
+              {Math.floor(parseFloat(member.savingsBalance || '0') / (groupStats.shareValue || 1))} shares
             </div>
           </CardContent>
         </Card>
