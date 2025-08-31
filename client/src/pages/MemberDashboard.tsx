@@ -67,6 +67,29 @@ export default function MemberDashboard() {
   const [, setLocation] = useLocation();
   const [memberSession, setMemberSession] = useState<MemberSession | null>(null);
 
+  // Function to load fresh session data
+  const loadFreshSessionData = () => {
+    fetch('/api/member-session', { cache: 'no-cache' })
+      .then(response => {
+        if (response.ok) {
+          return response.json();
+        }
+        throw new Error('No session found');
+      })
+      .then(session => {
+        setMemberSession(session);
+        localStorage.setItem('memberSession', JSON.stringify(session));
+      })
+      .catch(error => {
+        console.log('Member session not available:', error.message);
+        // Only redirect if no cached session and we're not already on login
+        const cachedSession = localStorage.getItem('memberSession');
+        if (!cachedSession && !window.location.pathname.includes('/login')) {
+          setTimeout(() => setLocation('/login'), 100);
+        }
+      });
+  };
+
   // Load member session from API to get fresh data
   useEffect(() => {
     // First try localStorage for faster loading
@@ -82,26 +105,18 @@ export default function MemberDashboard() {
       }
     }
 
-    // Then fetch fresh data from API
-    fetch('/api/member-session', { cache: 'no-cache' })
-      .then(response => {
-        if (response.ok) {
-          return response.json();
-        }
-        throw new Error('No session found');
-      })
-      .then(session => {
-        setMemberSession(session);
-        localStorage.setItem('memberSession', JSON.stringify(session));
-      })
-      .catch(error => {
-        console.log('Member session not available:', error.message);
-        // Only redirect if no cached session either and we're not already on login
-        if (!cachedSession && !window.location.pathname.includes('/login')) {
-          setTimeout(() => setLocation('/login'), 100);
-        }
-      });
+    // Then fetch fresh data
+    loadFreshSessionData();
   }, [setLocation]);
+
+  // Listen for member data updates
+  useEffect(() => {
+    const handleDataUpdate = () => {
+      loadFreshSessionData();
+    };
+    window.addEventListener('memberDataUpdated', handleDataUpdate);
+    return () => window.removeEventListener('memberDataUpdated', handleDataUpdate);
+  }, []);
 
   // Loading state while fetching fresh data
   const isLoading = !memberSession;

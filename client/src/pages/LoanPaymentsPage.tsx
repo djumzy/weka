@@ -84,12 +84,16 @@ export default function LoanPaymentsPage() {
           groupStats: response.updatedGroupStats || memberSession.groupStats
         };
         localStorage.setItem('memberSession', JSON.stringify(updatedSession));
+        setMemberSession(updatedSession); // Also update local state
       }
       
       // Invalidate queries to refresh data
       queryClient.invalidateQueries({ queryKey: ["/api/groups"] });
       queryClient.invalidateQueries({ queryKey: ["/api/members"] });
       queryClient.invalidateQueries({ queryKey: ["/api/member-session"] });
+      
+      // Force refresh member dashboard if user is on it
+      window.dispatchEvent(new CustomEvent('memberDataUpdated'));
     },
     onError: (error: Error) => {
       toast({
