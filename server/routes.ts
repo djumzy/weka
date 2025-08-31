@@ -215,7 +215,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const groupStats = await storage.getGroupStats(member.groupId);
       const group = await storage.getGroup(member.groupId);
 
-      console.log('API returning groupStats:', groupStats);
 
       res.json({
         userType: 'member',

@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { formatCurrency } from "@/lib/utils";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { AdminSidebar } from "@/components/AdminSidebar";
+import { OfflineIndicator } from "@/components/OfflineIndicator";
 import { 
   Users, 
   DollarSign, 
@@ -71,7 +72,6 @@ export default function MemberDashboard() {
         throw new Error('No session found');
       })
       .then(session => {
-        console.log('Fresh API response:', session);
         setMemberSession(session);
       })
       .catch(error => {
@@ -116,68 +116,67 @@ export default function MemberDashboard() {
 
   const dashboardContent = (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <div className="bg-primary/10 p-3 rounded-full">
-            <User className="h-8 w-8 text-primary" />
+      {/* Header - Mobile Responsive */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center space-x-3 sm:space-x-4">
+          <div className="bg-primary/10 p-2 sm:p-3 rounded-full">
+            <User className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-foreground">
+            <h1 className="text-xl sm:text-2xl font-bold text-foreground">
               {member.firstName} {member.lastName}
             </h1>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <Badge className={getRoleColor(member.groupRole)}>
                 {member.groupRole}
               </Badge>
+              <OfflineIndicator />
               {group && (
-                <span className="text-muted-foreground">
+                <span className="text-sm text-muted-foreground">
                   • {group.name}
                 </span>
               )}
             </div>
           </div>
         </div>
-        <Button variant="outline" onClick={handleLogout}>
+        <Button variant="outline" onClick={handleLogout} className="self-start sm:self-center">
           <LogOut className="w-4 h-4 mr-2" />
-          Logout
+          <span className="hidden sm:inline">Logout</span>
+          <span className="sm:hidden">Exit</span>
         </Button>
       </div>
 
-      {/* Personal Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      {/* Personal Stats - Mobile Responsive */}
+      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <Share className="h-4 w-4" />
-              My Shares
+            <CardTitle className="text-xs sm:text-sm font-medium flex items-center gap-1 sm:gap-2">
+              <Share className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">My Shares</span>
+              <span className="sm:hidden">Shares</span>
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-600">
-              {(() => {
-                const savings = parseFloat(member.savingsBalance || '0');
-                const shareValue = groupStats.shareValue || 1;
-                const calculatedShares = Math.floor(savings / shareValue);
-                console.log('Shares calculation:', { savings, shareValue, calculatedShares });
-                return calculatedShares;
-              })()}
+          <CardContent className="pt-2">
+            <div className="text-lg sm:text-2xl font-bold text-blue-600">
+              {Math.floor(parseFloat(member.savingsBalance || '0') / (groupStats.shareValue || 1))}
             </div>
             <div className="text-xs text-muted-foreground">
-              @ {formatCurrency(groupStats.shareValue)} each
+              <span className="hidden sm:inline">@ {formatCurrency(groupStats.shareValue)} each</span>
+              <span className="sm:hidden">{formatCurrency(groupStats.shareValue)}/share</span>
             </div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <DollarSign className="h-4 w-4" />
-              My Savings
+            <CardTitle className="text-xs sm:text-sm font-medium flex items-center gap-1 sm:gap-2">
+              <DollarSign className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">My Savings</span>
+              <span className="sm:hidden">Savings</span>
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-primary">
+          <CardContent className="pt-2">
+            <div className="text-lg sm:text-2xl font-bold text-primary">
               {formatCurrency(parseFloat(member.savingsBalance || '0'))}
             </div>
             <div className="text-xs text-muted-foreground">
@@ -188,49 +187,53 @@ export default function MemberDashboard() {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <Heart className="h-4 w-4" />
-              My Welfare
+            <CardTitle className="text-xs sm:text-sm font-medium flex items-center gap-1 sm:gap-2">
+              <Heart className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">My Welfare</span>
+              <span className="sm:hidden">Welfare</span>
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">
+          <CardContent className="pt-2">
+            <div className="text-lg sm:text-2xl font-bold text-green-600">
               {formatCurrency(parseFloat(member.welfareBalance || '0'))}
             </div>
             <div className="text-xs text-muted-foreground">
-              USh {member.welfareBalance || 0} expected
+              <span className="hidden sm:inline">USh {member.welfareBalance || 0} expected</span>
+              <span className="sm:hidden">Expected</span>
             </div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <Wallet className="h-4 w-4" />
-              Current Amount Due
+            <CardTitle className="text-xs sm:text-sm font-medium flex items-center gap-1 sm:gap-2">
+              <Wallet className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">Current Amount Due</span>
+              <span className="sm:hidden">Loan Due</span>
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-orange-600">
+          <CardContent className="pt-2">
+            <div className="text-lg sm:text-2xl font-bold text-orange-600">
               {formatCurrency(parseFloat(member.currentLoan || '0'))}
             </div>
             <div className="text-xs text-muted-foreground">
-              Principal + Interest
+              <span className="hidden sm:inline">Principal + Interest</span>
+              <span className="sm:hidden">Principal + Interest</span>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Group Overview */}
+      {/* Group Overview - Mobile Responsive */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Building2 className="h-5 w-5" />
+          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+            <Building2 className="h-4 w-4 sm:h-5 sm:w-5" />
             Group Overview
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             <div>
               <h4 className="font-medium text-sm text-muted-foreground mb-2">Group Totals</h4>
               <div className="space-y-1 text-sm">
@@ -267,7 +270,7 @@ export default function MemberDashboard() {
               </div>
             </div>
             
-            <div>
+            <div className="sm:col-span-2 lg:col-span-1">
               <h4 className="font-medium text-sm text-muted-foreground mb-2">Loan Information</h4>
               <div className="space-y-1 text-sm">
                 <div className="flex justify-between">
@@ -292,13 +295,14 @@ export default function MemberDashboard() {
         </CardContent>
       </Card>
 
-      {/* Detailed Loan Information if member has a loan */}
+      {/* Detailed Loan Information if member has a loan - Mobile Responsive */}
       {parseFloat(member.currentLoan || '0') > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Calculator className="h-5 w-5" />
-              Detailed Loan Information
+            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+              <Calculator className="h-4 w-4 sm:h-5 sm:w-5" />
+              <span className="hidden sm:inline">Detailed Loan Information</span>
+              <span className="sm:hidden">Loan Details</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -311,12 +315,13 @@ export default function MemberDashboard() {
         </Card>
       )}
 
-      {/* Transaction History */}
+      {/* Transaction History - Mobile Responsive */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Clock className="h-5 w-5" />
-            {isLeadershipRole ? 'Group Transaction History' : 'My Transaction History'}
+          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+            <Clock className="h-4 w-4 sm:h-5 sm:w-5" />
+            <span className="hidden sm:inline">{isLeadershipRole ? 'Group Transaction History' : 'My Transaction History'}</span>
+            <span className="sm:hidden">{isLeadershipRole ? 'Group History' : 'My History'}</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -336,7 +341,7 @@ export default function MemberDashboard() {
       <div className="min-h-screen flex bg-background">
         <AdminSidebar userRole={member.groupRole} />
         <main className="flex-1 overflow-auto">
-          <div className="container mx-auto p-6">
+          <div className="container mx-auto p-3 sm:p-6 max-w-7xl">
             {dashboardContent}
           </div>
         </main>
@@ -346,7 +351,7 @@ export default function MemberDashboard() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto p-6">
+      <div className="container mx-auto p-3 sm:p-6 max-w-7xl">
         {dashboardContent}
       </div>
     </div>
@@ -382,11 +387,14 @@ function LoanDetailsWidget({
 
   return (
     <div className="space-y-4">
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
-          <div className="text-sm text-blue-600 dark:text-blue-400 font-medium">Original Loan Amount</div>
-          <div className="text-xl font-bold text-blue-700 dark:text-blue-300">
+      {/* Summary Cards - Mobile Responsive */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+        <div className="bg-blue-50 dark:bg-blue-900/20 p-3 sm:p-4 rounded-lg">
+          <div className="text-xs sm:text-sm text-blue-600 dark:text-blue-400 font-medium">
+            <span className="hidden sm:inline">Original Loan Amount</span>
+            <span className="sm:hidden">Original Loan</span>
+          </div>
+          <div className="text-lg sm:text-xl font-bold text-blue-700 dark:text-blue-300">
             {formatCurrency(loanDetails.originalAmount)}
           </div>
           <div className="text-xs mt-1 opacity-80">
@@ -394,11 +402,12 @@ function LoanDetailsWidget({
           </div>
         </div>
         
-        <div className="bg-orange-50 dark:bg-orange-900/20 p-4 rounded-lg">
-          <div className="text-sm font-medium text-orange-600 dark:text-orange-400">
-            Current Amount Due
+        <div className="bg-orange-50 dark:bg-orange-900/20 p-3 sm:p-4 rounded-lg">
+          <div className="text-xs sm:text-sm font-medium text-orange-600 dark:text-orange-400">
+            <span className="hidden sm:inline">Current Amount Due</span>
+            <span className="sm:hidden">Amount Due</span>
           </div>
-          <div className="text-xl font-bold text-orange-700 dark:text-orange-300">
+          <div className="text-lg sm:text-xl font-bold text-orange-700 dark:text-orange-300">
             {formatCurrency(loanDetails.currentAmount)}
           </div>
           <div className="text-xs mt-1 opacity-80">
@@ -406,9 +415,12 @@ function LoanDetailsWidget({
           </div>
         </div>
 
-        <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
-          <div className="text-sm text-green-600 dark:text-green-400 font-medium">Interest Amount</div>
-          <div className="text-xl font-bold text-green-700 dark:text-green-300">
+        <div className="bg-green-50 dark:bg-green-900/20 p-3 sm:p-4 rounded-lg sm:col-span-2 lg:col-span-1">
+          <div className="text-xs sm:text-sm text-green-600 dark:text-green-400 font-medium">
+            <span className="hidden sm:inline">Interest Amount</span>
+            <span className="sm:hidden">Interest</span>
+          </div>
+          <div className="text-lg sm:text-xl font-bold text-green-700 dark:text-green-300">
             {formatCurrency(loanDetails.totalInterest)}
           </div>
           <div className="text-xs mt-1 opacity-80">
@@ -427,7 +439,7 @@ function LoanDetailsWidget({
           Interest Rate: {interestRate}% applied from day 1 • 28-day loan term
         </div>
         
-        <div className="grid grid-cols-2 gap-4 text-sm">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
           <div className="flex justify-between">
             <span>Original Loan:</span>
             <span className="font-medium">{formatCurrency(loanDetails.originalAmount)}</span>
@@ -436,7 +448,7 @@ function LoanDetailsWidget({
             <span>Interest ({interestRate}%):</span>
             <span className="font-medium text-green-600">+{formatCurrency(loanDetails.totalInterest)}</span>
           </div>
-          <div className="flex justify-between border-t pt-2 col-span-2">
+          <div className="flex justify-between border-t pt-2 sm:col-span-2">
             <span className="font-medium">Total Amount Due:</span>
             <span className="font-bold text-orange-600">{formatCurrency(loanDetails.currentAmount)}</span>
           </div>

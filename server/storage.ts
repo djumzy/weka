@@ -408,12 +408,6 @@ export class DatabaseStorage implements IStorage {
     const group = await this.getGroup(groupId);
     if (!group) throw new Error('Group not found');
     
-    console.log('Group data:', { 
-      id: group.id, 
-      name: group.name, 
-      savingPerShare: group.savingPerShare,
-      allGroupProps: Object.keys(group)
-    });
 
     const [memberCount] = await db.select({ count: count() }).from(members)
       .where(and(eq(members.groupId, groupId), eq(members.isActive, true)));
@@ -435,11 +429,6 @@ export class DatabaseStorage implements IStorage {
     const shareValue = parseFloat(group.savingPerShare || '0');
     const interestRate = parseFloat(group.interestRate || '0');
     
-    console.log('Share value calculation:', { 
-      rawSavingPerShare: group.savingPerShare, 
-      parsedShareValue: shareValue, 
-      interestRate 
-    });
     
     // Calculate total original loans and total interest for this group
     // Since currentLoan = originalLoan + interest, we need to separate them
