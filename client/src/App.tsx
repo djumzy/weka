@@ -27,57 +27,81 @@ import Reset from "@/pages/Reset";
 
 function Router() {
   const { isAuthenticated, isLoading, user } = useAuth();
+  const [memberSession, setMemberSession] = useState<any>(null);
+
+  // Check for member session in localStorage
+  useEffect(() => {
+    const stored = localStorage.getItem('memberSession');
+    if (stored) {
+      try {
+        setMemberSession(JSON.parse(stored));
+      } catch (e) {
+        console.log('Invalid member session in localStorage');
+      }
+    }
+  }, []);
 
   // If still loading authentication, show loading
   if (isLoading) {
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
   }
 
-  // If not authenticated, show public routes + member dashboard
-  if (!isAuthenticated) {
+  // Determine user type and role
+  const isStaffAuthenticated = isAuthenticated && user?.role; // Staff have roles (admin, field)
+  const isMemberAuthenticated = memberSession?.member;
+  const userRole = user?.role || memberSession?.member?.groupRole || 'guest';
+  
+  // If no authentication at all, show login
+  if (!isStaffAuthenticated && !isMemberAuthenticated) {
     return (
       <Switch>
         <Route path="/reset" component={Reset} />
         <Route path="/login" component={Login} />
-        {/* Member dashboard accessible without admin auth */}
-        <Route path="/member-dashboard/:memberId" component={MemberDashboard} />
-        <Route path="/member-dashboard" component={MemberDashboard} />
-        <Route path="/" component={MemberDashboard} />
         <Route component={Login} />
       </Switch>
     );
   }
 
-  // User is authenticated - determine which routes they can access
-  const isAdmin = user?.role === 'admin';
-  const isFieldStaff = user?.role === 'field';
-  const isMember = !user?.role; // Members don't have a role field
+  // User is authenticated (either staff or member)
+  const isAdmin = userRole === 'admin';
+  const isFieldStaff = userRole === 'field';
+  const isMember = ['chairman', 'secretary', 'finance', 'member'].includes(userRole);
   
   return (
     <Switch>
-      {/* Reset page for clearing corrupted sessions */}
+      {/* Public routes always available */}
       <Route path="/reset" component={Reset} />
-      
-      {/* Unified login page */}
       <Route path="/login" component={Login} />
       
-      {/* Member-specific routes - accessible to all */}
-      <Route path="/member-dashboard/:memberId" component={MemberDashboard} />
-      <Route path="/member-dashboard" component={MemberDashboard} />
-      
-      {/* Field staff dashboard */}
-      {isFieldStaff && (
-        <Route path="/field-dashboard" component={FieldDashboard} />
+      {/* Member routes - only for authenticated members */}
+      {isMemberAuthenticated && (
+        <>
+          <Route path="/member-dashboard/:memberId" component={MemberDashboard} />
+          <Route path="/member-dashboard" component={MemberDashboard} />
+          {/* Member leadership can access these */}
+          {memberSession?.member && ['chairman', 'secretary', 'finance'].includes(memberSession.member.groupRole) && (
+            <>
+              <Route path="/members" component={Members} />
+              <Route path="/submit-savings" component={SubmitSavingsPage} />
+              <Route path="/loan-payments" component={LoanPaymentsPage} />
+              <Route path="/loan-submission" component={LoanSubmissionPage} />
+            </>
+          )}
+        </>
       )}
       
-      {/* Routes accessible to admins and some members */}
-      <Route path="/" component={isAdmin ? Dashboard : (isMember ? MemberDashboard : FieldDashboard)} />
-      <Route path="/members" component={Members} />
-      <Route path="/submit-savings" component={SubmitSavingsPage} />
-      <Route path="/loan-payments" component={LoanPaymentsPage} />
-      <Route path="/loan-submission" component={LoanSubmissionPage} />
+      {/* Field staff routes - only for field staff */}
+      {isFieldStaff && (
+        <>
+          <Route path="/field-dashboard" component={FieldDashboard} />
+          <Route path="/members" component={Members} />
+          <Route path="/submit-savings" component={SubmitSavingsPage} />
+          <Route path="/loan-payments" component={LoanPaymentsPage} />
+          <Route path="/loan-submission" component={LoanSubmissionPage} />
+        </>
+      )}
       
-      {/* Admin-only routes */}
+      {/* Admin routes - only for administrators */}
       {isAdmin && (
         <>
           <Route path="/groups" component={Groups} />
@@ -88,8 +112,20 @@ function Router() {
           <Route path="/meetings" component={Meetings} />
           <Route path="/user-management" component={UserManagement} />
           <Route path="/reports" component={Reports} />
+          <Route path="/members" component={Members} />
+          <Route path="/submit-savings" component={SubmitSavingsPage} />
+          <Route path="/loan-payments" component={LoanPaymentsPage} />
+          <Route path="/loan-submission" component={LoanSubmissionPage} />
         </>
       )}
+      
+      {/* Default home routes based on role */}
+      <Route path="/" component={() => {
+        if (isAdmin) return <Dashboard />;
+        if (isFieldStaff) return <FieldDashboard />;
+        if (memberSession?.member) return <MemberDashboard />;
+        return <Login />;
+      }} />
       
       {/* 404 Not Found */}
       <Route component={NotFound} />

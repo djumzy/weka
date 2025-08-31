@@ -383,7 +383,7 @@ export default function MemberDashboard() {
   if (isLeadershipRole) {
     return (
       <div className="min-h-screen flex bg-background">
-        <AdminSidebar userRole={member.groupRole} />
+        <AdminSidebar userRole={member.groupRole || 'member'} />
         <main className="flex-1 overflow-auto">
           {/* Add top padding on mobile to account for hamburger menu */}
           <div className="container mx-auto p-3 sm:p-6 max-w-7xl pt-16 lg:pt-3">
@@ -394,11 +394,16 @@ export default function MemberDashboard() {
     );
   }
 
+  // All members get sidebar - navigation is filtered by role
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto p-3 sm:p-6 max-w-7xl">
-        {dashboardContent}
-      </div>
+    <div className="min-h-screen flex bg-background">
+      <AdminSidebar userRole={member.groupRole || 'member'} />
+      <main className="flex-1 overflow-auto">
+        {/* Add top padding on mobile to account for hamburger menu */}
+        <div className="container mx-auto p-3 sm:p-6 max-w-7xl pt-16 lg:pt-3">
+          {dashboardContent}
+        </div>
+      </main>
     </div>
   );
 }

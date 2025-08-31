@@ -24,14 +24,14 @@ import dreamersLogo from "@assets/updated logo the dreamers_1756291084041.png";
 
 // Navigation items with role-based access control
 const navigationItems = [
-  // Dashboard available to all
-  { href: "/", icon: Home, label: "Dashboard", roles: ['chairman', 'secretary', 'finance', 'member', 'admin'] },
+  // Dashboard available to all authenticated users
+  { href: "/", icon: Home, label: "Dashboard", roles: ['chairman', 'secretary', 'finance', 'member', 'admin', 'field'] },
   
-  // Group-level navigation for leadership roles (chairman, secretary, finance)
-  { href: "/members", icon: User, label: "Group Members", roles: ['chairman', 'secretary', 'finance'] },
-  { href: "/submit-savings", icon: PlusCircle, label: "Submit Savings", roles: ['chairman', 'secretary', 'finance'] },
-  { href: "/loan-submission", icon: FileText, label: "Loan Submission", roles: ['chairman', 'secretary', 'finance'] },
-  { href: "/loan-payments", icon: MinusCircle, label: "Loan Payments", roles: ['chairman', 'secretary', 'finance'] },
+  // Group-level navigation for leadership roles (chairman, secretary, finance) and field staff
+  { href: "/members", icon: User, label: "Group Members", roles: ['chairman', 'secretary', 'finance', 'field'] },
+  { href: "/submit-savings", icon: PlusCircle, label: "Submit Savings", roles: ['chairman', 'secretary', 'finance', 'field'] },
+  { href: "/loan-submission", icon: FileText, label: "Loan Submission", roles: ['chairman', 'secretary', 'finance', 'field'] },
+  { href: "/loan-payments", icon: MinusCircle, label: "Loan Payments", roles: ['chairman', 'secretary', 'finance', 'field'] },
   
   // Admin-only navigation for system administrators
   { href: "/groups", icon: Users, label: "All Groups", roles: ['admin'] },
@@ -53,10 +53,10 @@ export function AdminSidebar({ userRole }: AdminSidebarProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
   // Determine the actual user role:
-  // 1. If userRole prop is provided (for group leaders), use it
-  // 2. If user is authenticated via API (admin), use 'admin'
+  // 1. If userRole prop is provided (for group leaders/members), use it
+  // 2. If user is authenticated via API and has a role, use that role (admin/field)
   // 3. Otherwise default to 'member'
-  const actualUserRole = userRole || (isAuthenticated ? 'admin' : 'member');
+  const actualUserRole = userRole || (isAuthenticated && user?.role ? user.role : 'member');
   
   // Filter navigation items based on actual user role
   const allowedItems = navigationItems.filter(item => 
@@ -65,16 +65,27 @@ export function AdminSidebar({ userRole }: AdminSidebarProps) {
 
   const handleLogout = async () => {
     try {
-      await fetch("/api/logout", { 
-        method: "POST",
-        credentials: "include" 
+      // Check if this is a member session (stored in localStorage)
+      const memberSession = localStorage.getItem('memberSession');
+      
+      if (memberSession) {
+        // Member logout - clear localStorage and redirect
+        localStorage.removeItem('memberSession');
+        window.location.href = '/login';
+        return;
+      }
+      
+      // Staff logout - clear server session
+      await fetch('/api/logout', {
+        method: 'POST',
+        credentials: 'include'
       });
-      // Force page reload to clear authentication state
-      window.location.href = "/";
+      
+      window.location.href = '/login';
     } catch (error) {
-      console.error("Logout error:", error);
+      console.log('Logout error:', error);
       // Force redirect even on error
-      window.location.href = "/";
+      window.location.href = '/login';
     }
   };
 
