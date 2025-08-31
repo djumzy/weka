@@ -64,15 +64,32 @@ export default function LoanPaymentsPage() {
       });
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (response) => {
       toast({
         title: "Success",
         description: "Loan payment processed successfully",
       });
       setSelectedMember('');
       setPaymentAmount('');
+      
+      // Update localStorage if this is a member session
+      if (memberSession && response.updatedMember) {
+        const updatedSession = {
+          ...memberSession,
+          member: {
+            ...memberSession.member,
+            currentLoan: response.updatedMember.currentLoan,
+            savingsBalance: response.updatedMember.savingsBalance
+          },
+          groupStats: response.updatedGroupStats || memberSession.groupStats
+        };
+        localStorage.setItem('memberSession', JSON.stringify(updatedSession));
+      }
+      
+      // Invalidate queries to refresh data
       queryClient.invalidateQueries({ queryKey: ["/api/groups"] });
       queryClient.invalidateQueries({ queryKey: ["/api/members"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/member-session"] });
     },
     onError: (error: Error) => {
       toast({

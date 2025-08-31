@@ -104,7 +104,7 @@ export const transactions = pgTable("transactions", {
   amount: decimal("amount", { precision: 12, scale: 2 }).notNull(),
   description: text("description"),
   transactionDate: timestamp("transaction_date").notNull().defaultNow(),
-  createdBy: varchar("created_by").references(() => users.id), // Nullable for member transactions
+  createdBy: varchar("created_by").notNull().references(() => users.id), // Tracks who processed this transaction
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -166,7 +166,7 @@ export const cashbox = pgTable("cashbox", {
   amount: decimal("amount", { precision: 12, scale: 2 }).notNull(),
   transactionType: varchar("transaction_type", { length: 20 }).notNull(), // deposit, withdrawal
   description: text("description"),
-  recordedBy: varchar("recorded_by").references(() => users.id), // Nullable for member actions
+  recordedBy: varchar("recorded_by").notNull().references(() => users.id), // Tracks who recorded this entry
   recordedAt: timestamp("recorded_at").notNull().defaultNow(),
 });
 

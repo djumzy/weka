@@ -168,8 +168,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Invalid phone number or PIN" });
       }
       
+      // Create or update user record for member to maintain audit trail
+      let memberUser;
+      try {
+        memberUser = await storage.getUserByPhoneOrUserId(member.id);
+        if (!memberUser) {
+          // Create user record for member
+          memberUser = await storage.createUser({
+            userId: `MB${member.id.slice(-6)}`, // MB prefix for member users
+            firstName: member.firstName,
+            lastName: member.lastName,
+            phone: member.phone || '',
+            pin: member.pin, // Use same PIN
+            role: 'member',
+            isActive: member.isActive
+          });
+        }
+      } catch (e) {
+        console.log('Could not create member user record:', e);
+      }
+      
       // Set session for member authentication
       (req.session as any).memberId = member.id;
+      (req.session as any).userId = memberUser?.id; // Also store user ID for audit trail
       (req.session as any).userRole = 'member';
       
       // Get group stats and group info for the member
@@ -843,14 +864,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const paymentAmount = Math.min(amount, currentLoan);
       const newLoanBalance = currentLoan - paymentAmount;
 
-      // Create loan payment transaction - null createdBy for member sessions
+      // Create loan payment transaction with proper audit trail
+      const processingUserId = req.userId; // Now guaranteed to exist from member login
       await storage.createTransaction({
         groupId,
         memberId,
         type: 'loan_payment',
         amount: paymentAmount.toString(),
         description: `Loan payment processed by ${processedBy}`,
-        createdBy: req.userId || null // Only use userId if it's a staff member
+        createdBy: processingUserId
       });
 
       // Update member's loan balance
@@ -864,13 +886,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         amount: paymentAmount.toString(),
         transactionType: 'deposit',
         description: `Loan payment from ${member.firstName} ${member.lastName}`,
-        recordedBy: req.userId || null
+        recordedBy: processingUserId
       });
 
+      // Fetch updated member data to return fresh information
+      const updatedMember = await storage.getMember(memberId);
+      const updatedGroupStats = await storage.getGroupStats(groupId);
+      
       res.json({ 
         message: "Loan payment processed successfully",
         remainingBalance: newLoanBalance,
-        paymentAmount: paymentAmount
+        paymentAmount: paymentAmount,
+        updatedMember,
+        updatedGroupStats
       });
     } catch (error) {
       console.error("Error processing loan payment:", error);
