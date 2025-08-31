@@ -402,6 +402,8 @@ export class DatabaseStorage implements IStorage {
     totalLoansOutstanding: number;
     groupWelfareAmount: number;
     interestRate: number;
+    totalInterest: number;
+    totalOriginalLoans: number;
   }> {
     const group = await this.getGroup(groupId);
     if (!group) throw new Error('Group not found');
@@ -424,6 +426,13 @@ export class DatabaseStorage implements IStorage {
     const totalSavings = parseFloat(savingsSum.sum || '0');
     const totalLoansOutstanding = parseFloat(loansSum.sum || '0');
     const shareValue = parseFloat(group.savingPerShare || '0');
+    const interestRate = parseFloat(group.interestRate || '0');
+    
+    // Calculate total original loans and total interest for this group
+    // Since currentLoan = originalLoan + interest, we need to separate them
+    // For now, we'll calculate based on the interest rate
+    const totalOriginalLoans = totalLoansOutstanding / (1 + (interestRate / 100));
+    const totalInterest = totalLoansOutstanding - totalOriginalLoans;
     
     return {
       totalMembers: memberCount.count,
@@ -431,10 +440,12 @@ export class DatabaseStorage implements IStorage {
       totalWelfare: parseFloat(welfareSum.sum || '0'),
       totalShares: parseInt(sharesSum.sum || '0'),
       shareValue,
-      totalCashInBox: totalSavings - totalLoansOutstanding,
+      totalCashInBox: totalSavings - totalOriginalLoans, // Use original loan amount for cash calculation
       totalLoansOutstanding,
       groupWelfareAmount: parseFloat(group.welfareAmount || '0'),
-      interestRate: parseFloat(group.interestRate || '0'),
+      interestRate,
+      totalInterest,
+      totalOriginalLoans,
     };
   }
 

@@ -51,6 +51,8 @@ interface MemberSession {
     totalLoansOutstanding: number;
     groupWelfareAmount: number;
     interestRate: number;
+    totalInterest: number;
+    totalOriginalLoans: number;
   };
 }
 
@@ -198,7 +200,7 @@ export default function MemberDashboard() {
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
               <Wallet className="h-4 w-4" />
-              My Loan
+              Current Amount Due
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -206,7 +208,7 @@ export default function MemberDashboard() {
               {formatCurrency(parseFloat(member.currentLoan || '0'))}
             </div>
             <div className="text-xs text-muted-foreground">
-              Amount Borrowed
+              Principal + Interest
             </div>
           </CardContent>
         </Card>
@@ -263,15 +265,19 @@ export default function MemberDashboard() {
               <div className="space-y-1 text-sm">
                 <div className="flex justify-between">
                   <span>Outstanding Loans:</span>
-                  <span className="font-medium">{formatCurrency(groupStats.totalLoansOutstanding) || 'USh 85,000'}</span>
+                  <span className="font-medium">{formatCurrency(groupStats.totalLoansOutstanding) || 'USh 0'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Original Loan Amount:</span>
+                  <span className="font-medium">{formatCurrency(groupStats.totalOriginalLoans) || 'USh 0'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Total Interest:</span>
+                  <span className="font-medium text-indigo-600">{formatCurrency(groupStats.totalInterest) || 'USh 0'}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Interest Rate:</span>
                   <span className="font-medium">{groupStats.interestRate || 10}% per month</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Available for Loans:</span>
-                  <span className="font-medium text-green-600">USh 0</span>
                 </div>
               </div>
             </div>
