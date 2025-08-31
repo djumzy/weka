@@ -296,7 +296,7 @@ export default function MemberDashboard() {
           </CardHeader>
           <CardContent>
             <LoanDetailsWidget 
-              borrowedAmount={parseFloat(member.currentLoan || '0')}
+              currentAmountDue={parseFloat(member.currentLoan || '0')}
               interestRate={groupStats.interestRate}
               memberId={member.id}
             />
@@ -346,151 +346,94 @@ export default function MemberDashboard() {
   );
 }
 
-// Loan Details Widget with Compound Interest Calculation
+// Loan Details Widget with VSLA Simple Interest Calculation
 function LoanDetailsWidget({ 
-  borrowedAmount, 
+  currentAmountDue, 
   interestRate, 
   memberId 
 }: { 
-  borrowedAmount: number; 
+  currentAmountDue: number; 
   interestRate: number; 
   memberId: string;
 }) {
   const { toast } = useToast();
 
-  // Don't make API calls for member sessions - use mock data instead
-  const loanData = borrowedAmount > 0 ? {
-    approvedDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days ago
-  } : null;
+  // VSLA Simple Interest Calculation:
+  // Current Amount Due = Original Loan + Interest (from day 1)
+  // Interest = Original Loan × Interest Rate
+  // Original Loan = Current Amount Due ÷ (1 + Interest Rate)
+  
+  const originalLoanAmount = currentAmountDue / (1 + (interestRate / 100));
+  const totalInterest = currentAmountDue - originalLoanAmount;
 
-  // Calculate compound interest based on time since disbursement
-  const calculateCompoundInterest = () => {
-    if (!loanData || !loanData.approvedDate) {
-      return {
-        currentAmount: borrowedAmount,
-        totalInterest: 0,
-        monthsElapsed: 0,
-        monthlyBreakdown: [],
-        monthsOverdue: 0,
-        daysSinceStart: 0
-      };
-    }
-
-    const now = new Date();
-    const startDate = new Date(loanData.approvedDate);
-    const daysSinceStart = Math.floor((now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
-    
-    // Calculate completed months (every 28 days = 1 month)
-    const monthsCompleted = Math.floor(daysSinceStart / 28);
-    const daysInCurrentPeriod = daysSinceStart % 28;
-    
-    let runningPrincipal = borrowedAmount;
-    let totalInterest = 0;
-    const monthlyBreakdown = [];
-
-    // Calculate completed months - these go to Total Interest
-    for (let month = 1; month <= monthsCompleted; month++) {
-      const monthlyInterest = runningPrincipal * (interestRate / 100);
-      totalInterest += monthlyInterest;
-      runningPrincipal += monthlyInterest; // Compound the principal
-      
-      monthlyBreakdown.push({
-        month,
-        principal: month === 1 ? borrowedAmount : runningPrincipal - monthlyInterest,
-        interest: monthlyInterest,
-        totalAmount: runningPrincipal
-      });
-    }
-
-    // Calculate current period interest (partial month)
-    const currentPeriodInterest = daysInCurrentPeriod > 0 
-      ? (runningPrincipal * (interestRate / 100) * daysInCurrentPeriod / 28)
-      : 0;
-
-    // Current Amount Due = Current Principal + Current Period Interest
-    const currentAmount = runningPrincipal + currentPeriodInterest;
-
-    return {
-      currentAmount,
-      totalInterest,
-      monthsElapsed: monthsCompleted,
-      monthlyBreakdown,
-      monthsOverdue: monthsCompleted,
-      daysSinceStart,
-      currentPeriodInterest,
-      daysInCurrentPeriod,
-      currentPrincipal: runningPrincipal
-    };
+  const loanDetails = {
+    originalAmount: originalLoanAmount,
+    currentAmount: currentAmountDue,
+    totalInterest: totalInterest,
+    interestRate: interestRate
   };
-
-  const loanDetails = calculateCompoundInterest();
-  const isOverdue = loanDetails.monthsOverdue > 0;
 
   return (
     <div className="space-y-4">
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
-          <div className="text-sm text-blue-600 dark:text-blue-400 font-medium">Original Amount</div>
+          <div className="text-sm text-blue-600 dark:text-blue-400 font-medium">Original Loan Amount</div>
           <div className="text-xl font-bold text-blue-700 dark:text-blue-300">
-            {formatCurrency(borrowedAmount)}
+            {formatCurrency(loanDetails.originalAmount)}
+          </div>
+          <div className="text-xs mt-1 opacity-80">
+            Principal borrowed
           </div>
         </div>
         
-        <div className={`p-4 rounded-lg ${isOverdue ? 'bg-red-50 dark:bg-red-900/20' : 'bg-orange-50 dark:bg-orange-900/20'}`}>
-          <div className={`text-sm font-medium ${isOverdue ? 'text-red-600 dark:text-red-400' : 'text-orange-600 dark:text-orange-400'}`}>
+        <div className="bg-orange-50 dark:bg-orange-900/20 p-4 rounded-lg">
+          <div className="text-sm font-medium text-orange-600 dark:text-orange-400">
             Current Amount Due
           </div>
-          <div className={`text-xl font-bold ${isOverdue ? 'text-red-700 dark:text-red-300' : 'text-orange-700 dark:text-orange-300'}`}>
+          <div className="text-xl font-bold text-orange-700 dark:text-orange-300">
             {formatCurrency(loanDetails.currentAmount)}
           </div>
           <div className="text-xs mt-1 opacity-80">
-            Principal: {formatCurrency(loanDetails.currentPrincipal || borrowedAmount)} + Current Interest: {formatCurrency(loanDetails.currentPeriodInterest || 0)}
+            Principal + {interestRate}% interest
           </div>
-          {isOverdue && (
-            <div className="flex items-center gap-1 mt-1">
-              <AlertTriangle className="h-3 w-3" />
-              <span className="text-xs">Overdue by {loanDetails.monthsOverdue} month(s)</span>
-            </div>
-          )}
         </div>
 
         <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
-          <div className="text-sm text-green-600 dark:text-green-400 font-medium">Total Interest</div>
+          <div className="text-sm text-green-600 dark:text-green-400 font-medium">Interest Amount</div>
           <div className="text-xl font-bold text-green-700 dark:text-green-300">
             {formatCurrency(loanDetails.totalInterest)}
           </div>
           <div className="text-xs mt-1 opacity-80">
-            Day {loanDetails.daysInCurrentPeriod || 0} of 28 (Current Period)
+            {interestRate}% of original amount
           </div>
         </div>
       </div>
 
-      {/* Interest Breakdown */}
+      {/* VSLA Loan Summary */}
       <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
         <h4 className="font-medium mb-2 flex items-center gap-2">
           <TrendingUp className="h-4 w-4" />
-          Monthly Interest Breakdown
+          VSLA Loan Summary
         </h4>
         <div className="text-sm text-muted-foreground mb-2">
-          Interest Rate: {interestRate}% per month • Days Since Loan: {loanDetails.daysSinceStart || 0}
+          Interest Rate: {interestRate}% applied from day 1 • 28-day loan term
         </div>
         
-        {loanDetails.monthlyBreakdown.length > 0 ? (
-          <div className="space-y-2 max-h-40 overflow-y-auto">
-            {loanDetails.monthlyBreakdown.map((month) => (
-              <div key={month.month} className="flex justify-between items-center text-sm">
-                <span>Month {month.month}</span>
-                <span>Interest: {formatCurrency(month.interest)}</span>
-                <span className="font-medium">Total: {formatCurrency(month.totalAmount)}</span>
-              </div>
-            ))}
+        <div className="grid grid-cols-2 gap-4 text-sm">
+          <div className="flex justify-between">
+            <span>Original Loan:</span>
+            <span className="font-medium">{formatCurrency(loanDetails.originalAmount)}</span>
           </div>
-        ) : (
-          <div className="text-sm text-muted-foreground">
-            No completed months yet. Current period: Day {loanDetails.daysInCurrentPeriod || 0} of 28
+          <div className="flex justify-between">
+            <span>Interest ({interestRate}%):</span>
+            <span className="font-medium text-green-600">+{formatCurrency(loanDetails.totalInterest)}</span>
           </div>
-        )}
+          <div className="flex justify-between border-t pt-2 col-span-2">
+            <span className="font-medium">Total Amount Due:</span>
+            <span className="font-bold text-orange-600">{formatCurrency(loanDetails.currentAmount)}</span>
+          </div>
+        </div>
       </div>
     </div>
   );
