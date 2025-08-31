@@ -149,7 +149,7 @@ export default function LoanSubmissionPage() {
         </div>
         <Button 
           variant="outline" 
-          onClick={() => setLocation('/dashboard')}
+          onClick={() => setLocation('/')}
           className="flex items-center gap-2"
         >
           <ArrowLeft className="h-4 w-4" />

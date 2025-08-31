@@ -843,14 +843,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const paymentAmount = Math.min(amount, currentLoan);
       const newLoanBalance = currentLoan - paymentAmount;
 
-      // Create loan payment transaction
+      // Create loan payment transaction - null createdBy for member sessions
       await storage.createTransaction({
         groupId,
         memberId,
         type: 'loan_payment',
         amount: paymentAmount.toString(),
         description: `Loan payment processed by ${processedBy}`,
-        createdBy: req.userId || memberId
+        createdBy: req.userId || null // Only use userId if it's a staff member
       });
 
       // Update member's loan balance
@@ -864,7 +864,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         amount: paymentAmount.toString(),
         transactionType: 'deposit',
         description: `Loan payment from ${member.firstName} ${member.lastName}`,
-        recordedBy: req.userId || memberId
+        recordedBy: req.userId || null
       });
 
       res.json({ 
