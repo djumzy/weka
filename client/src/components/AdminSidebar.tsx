@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
@@ -15,6 +16,8 @@ import {
   UserPlus,
   PlusCircle,
   MinusCircle,
+  Menu,
+  X,
 } from "lucide-react";
 import wekaLogo from "@assets/WEKA_1756289094166.png";
 import dreamersLogo from "@assets/updated logo the dreamers_1756291084041.png";
@@ -47,6 +50,7 @@ interface AdminSidebarProps {
 export function AdminSidebar({ userRole }: AdminSidebarProps) {
   const [location] = useLocation();
   const { user, isAuthenticated } = useAuth();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
   // Determine the actual user role:
   // 1. If userRole prop is provided (for group leaders), use it
@@ -74,7 +78,7 @@ export function AdminSidebar({ userRole }: AdminSidebarProps) {
     }
   };
 
-  return (
+  const sidebarContent = (
     <aside className="w-64 bg-card border-r border-border flex flex-col" data-testid="admin-sidebar">
       {/* Header */}
       <div className="p-6 border-b border-border">
@@ -113,6 +117,7 @@ export function AdminSidebar({ userRole }: AdminSidebarProps) {
                     : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                 }`}
                 data-testid={`nav-${item.label.toLowerCase()}`}
+                onClick={() => setIsMobileMenuOpen(false)}
               >
                 <Icon className="w-5 h-5" />
                 <span>{item.label}</span>
@@ -148,7 +153,10 @@ export function AdminSidebar({ userRole }: AdminSidebarProps) {
           <Button
             variant="ghost"
             size="sm"
-            onClick={handleLogout}
+            onClick={() => {
+              handleLogout();
+              setIsMobileMenuOpen(false);
+            }}
             data-testid="button-logout"
           >
             <LogOut className="w-4 h-4" />
@@ -156,5 +164,48 @@ export function AdminSidebar({ userRole }: AdminSidebarProps) {
         </div>
       </div>
     </aside>
+  );
+
+  return (
+    <>
+      {/* Mobile Menu Button - Hamburger Menu */}
+      <Button
+        variant="ghost"
+        size="sm"
+        className="fixed top-3 left-3 z-50 lg:hidden bg-background/80 backdrop-blur-sm border shadow-sm"
+        onClick={() => setIsMobileMenuOpen(true)}
+        data-testid="mobile-menu-button"
+      >
+        <Menu className="h-4 w-4" />
+      </Button>
+
+      {/* Desktop Sidebar - Hidden on mobile */}
+      <div className="hidden lg:block">
+        {sidebarContent}
+      </div>
+
+      {/* Mobile Sidebar Overlay */}
+      {isMobileMenuOpen && (
+        <div className="fixed inset-0 z-40 lg:hidden">
+          {/* Backdrop */}
+          <div 
+            className="absolute inset-0 bg-background/80 backdrop-blur-sm" 
+            onClick={() => setIsMobileMenuOpen(false)}
+          />
+          {/* Mobile Sidebar with Close Button */}
+          <div className="relative">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="absolute top-3 right-3 z-50 bg-background border shadow-sm"
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+            {sidebarContent}
+          </div>
+        </div>
+      )}
+    </>
   );
 }

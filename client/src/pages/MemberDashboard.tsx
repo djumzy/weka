@@ -344,7 +344,8 @@ export default function MemberDashboard() {
       <div className="min-h-screen flex bg-background">
         <AdminSidebar userRole={member.groupRole} />
         <main className="flex-1 overflow-auto">
-          <div className="container mx-auto p-3 sm:p-6 max-w-7xl">
+          {/* Add top padding on mobile to account for hamburger menu */}
+          <div className="container mx-auto p-3 sm:p-6 max-w-7xl pt-16 lg:pt-3">
             {dashboardContent}
           </div>
         </main>
