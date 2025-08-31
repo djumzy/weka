@@ -63,7 +63,7 @@ export default function MemberDashboard() {
 
   // Load member session from API to get fresh data
   useEffect(() => {
-    fetch('/api/member-session')
+    fetch('/api/member-session', { cache: 'no-cache' })
       .then(response => {
         if (response.ok) {
           return response.json();
@@ -71,6 +71,7 @@ export default function MemberDashboard() {
         throw new Error('No session found');
       })
       .then(session => {
+        console.log('Fresh API response:', session);
         setMemberSession(session);
       })
       .catch(error => {
@@ -154,7 +155,13 @@ export default function MemberDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-blue-600">
-              {Math.floor(parseFloat(member.savingsBalance || '0') / (groupStats.shareValue || 1))}
+              {(() => {
+                const savings = parseFloat(member.savingsBalance || '0');
+                const shareValue = groupStats.shareValue || 1;
+                const calculatedShares = Math.floor(savings / shareValue);
+                console.log('Shares calculation:', { savings, shareValue, calculatedShares });
+                return calculatedShares;
+              })()}
             </div>
             <div className="text-xs text-muted-foreground">
               @ {formatCurrency(groupStats.shareValue)} each

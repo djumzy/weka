@@ -407,6 +407,13 @@ export class DatabaseStorage implements IStorage {
   }> {
     const group = await this.getGroup(groupId);
     if (!group) throw new Error('Group not found');
+    
+    console.log('Group data:', { 
+      id: group.id, 
+      name: group.name, 
+      savingPerShare: group.savingPerShare,
+      allGroupProps: Object.keys(group)
+    });
 
     const [memberCount] = await db.select({ count: count() }).from(members)
       .where(and(eq(members.groupId, groupId), eq(members.isActive, true)));
@@ -427,6 +434,12 @@ export class DatabaseStorage implements IStorage {
     const totalLoansOutstanding = parseFloat(loansSum.sum || '0');
     const shareValue = parseFloat(group.savingPerShare || '0');
     const interestRate = parseFloat(group.interestRate || '0');
+    
+    console.log('Share value calculation:', { 
+      rawSavingPerShare: group.savingPerShare, 
+      parsedShareValue: shareValue, 
+      interestRate 
+    });
     
     // Calculate total original loans and total interest for this group
     // Since currentLoan = originalLoan + interest, we need to separate them
@@ -482,29 +495,6 @@ export class DatabaseStorage implements IStorage {
     return await this.getTransactions(undefined, memberId);
   }
 
-  async getGroupStats(groupId: string): Promise<any> {
-    const group = await this.getGroup(groupId);
-    if (!group) return null;
-
-    const groupMembers = await this.getGroupMembers(groupId);
-    const totalMembers = groupMembers.length;
-    const totalSavings = groupMembers.reduce((sum, member) => sum + parseFloat(member.savingsBalance), 0);
-    const totalWelfare = groupMembers.reduce((sum, member) => sum + parseFloat(member.welfareBalance), 0);
-    const totalLoansOutstanding = groupMembers.reduce((sum, member) => sum + parseFloat(member.currentLoan), 0);
-    const totalCashInBox = await this.getCashboxBalance(groupId);
-
-    return {
-      groupName: group.groupName,
-      totalMembers,
-      totalSavings,
-      totalWelfare,
-      totalLoansOutstanding,
-      totalCashInBox,
-      interestRate: parseFloat(group.interestRate || '10'), // Default 10%
-      groupLocation: group.location,
-      meetingFrequency: group.meetingFrequency
-    };
-  }
 
   // Dashboard statistics
   async getDashboardStats(): Promise<{
