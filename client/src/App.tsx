@@ -33,12 +33,16 @@ function Router() {
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
   }
 
-  // If not authenticated, only show public routes
+  // If not authenticated, show public routes + member dashboard
   if (!isAuthenticated) {
     return (
       <Switch>
         <Route path="/reset" component={Reset} />
         <Route path="/login" component={Login} />
+        {/* Member dashboard accessible without admin auth */}
+        <Route path="/member-dashboard/:memberId" component={MemberDashboard} />
+        <Route path="/member-dashboard" component={MemberDashboard} />
+        <Route path="/" component={MemberDashboard} />
         <Route component={Login} />
       </Switch>
     );
@@ -57,10 +61,9 @@ function Router() {
       {/* Unified login page */}
       <Route path="/login" component={Login} />
       
-      {/* Member-specific routes */}
-      {isMember && (
-        <Route path="/member-dashboard/:memberId" component={MemberDashboard} />
-      )}
+      {/* Member-specific routes - accessible to all */}
+      <Route path="/member-dashboard/:memberId" component={MemberDashboard} />
+      <Route path="/member-dashboard" component={MemberDashboard} />
       
       {/* Field staff dashboard */}
       {isFieldStaff && (

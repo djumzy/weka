@@ -96,8 +96,8 @@ export default function MemberDashboard() {
       })
       .catch(error => {
         console.log('Member session not available:', error.message);
-        // Only redirect if no cached session either
-        if (!cachedSession) {
+        // Only redirect if no cached session either and we're not already on login
+        if (!cachedSession && !window.location.pathname.includes('/login')) {
           setTimeout(() => setLocation('/login'), 100);
         }
       });
@@ -107,9 +107,27 @@ export default function MemberDashboard() {
   const isLoading = !memberSession;
   const dashboardData = memberSession;
 
-  const handleLogout = () => {
-    localStorage.removeItem('memberSession');
-    setLocation('/login');
+  const handleLogout = async () => {
+    try {
+      // Clear localStorage first
+      localStorage.removeItem('memberSession');
+      
+      // Try to logout from server (might fail if session expired)
+      await fetch('/api/logout', { 
+        method: 'POST',
+        credentials: 'include'
+      }).catch(() => {
+        // Ignore errors, just ensure cleanup
+        console.log('Server logout failed, but continuing with client cleanup');
+      });
+      
+      // Force page reload to clear all state
+      window.location.href = '/login';
+    } catch (error) {
+      console.log('Logout error, forcing redirect:', error);
+      // Force redirect even on error
+      window.location.href = '/login';
+    }
   };
 
   if (!memberSession) {
