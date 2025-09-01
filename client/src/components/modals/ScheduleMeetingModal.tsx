@@ -80,7 +80,7 @@ export function ScheduleMeetingModal({ open, onOpenChange, preselectedGroupId }:
 
       const payload = {
         groupId: data.groupId,
-        date: meetingDate.toISOString(),
+        date: meetingDate,
         location: data.location || null,
         agenda: data.agenda || null,
       };

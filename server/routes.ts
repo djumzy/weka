@@ -930,6 +930,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const meetingData = insertMeetingSchema.parse({
         ...req.body,
+        date: new Date(req.body.date), // Convert ISO string back to Date object
         createdBy: req.userId
       });
       const meeting = await storage.createMeeting(meetingData);
