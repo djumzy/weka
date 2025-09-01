@@ -526,7 +526,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete('/api/groups/:id', isAuthenticated, async (req, res) => {
+  app.delete('/api/groups/:id', isAuthenticated, requireRole(['admin']), async (req, res) => {
     try {
       const success = await storage.deleteGroup(req.params.id);
       if (!success) {

@@ -2,7 +2,7 @@ import { Group } from "@shared/schema";
 import { format } from "date-fns";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Eye, Edit } from "lucide-react";
+import { Eye, Edit, Trash2 } from "lucide-react";
 
 interface GroupCardProps {
   group: Group;
@@ -11,9 +11,11 @@ interface GroupCardProps {
   nextMeeting?: Date;
   onViewClick?: (group: Group) => void;
   onEditClick?: (group: Group) => void;
+  onDeleteClick?: (group: Group) => void;
+  showDeleteButton?: boolean;
 }
 
-export function GroupCard({ group, memberCount, totalSavings, nextMeeting, onViewClick, onEditClick }: GroupCardProps) {
+export function GroupCard({ group, memberCount, totalSavings, nextMeeting, onViewClick, onEditClick, onDeleteClick, showDeleteButton }: GroupCardProps) {
   const initials = group.name
     .split(' ')
     .map(word => word[0])
@@ -71,6 +73,22 @@ export function GroupCard({ group, memberCount, totalSavings, nextMeeting, onVie
             >
               <Edit className="h-4 w-4" />
               Edit
+            </Button>
+          )}
+          {showDeleteButton && onDeleteClick && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onDeleteClick(group);
+              }}
+              className="flex items-center gap-1 text-red-600 hover:text-red-700 hover:bg-red-50"
+              data-testid={`delete-group-${group.id}`}
+            >
+              <Trash2 className="h-4 w-4" />
+              Delete
             </Button>
           )}
           {onViewClick && (

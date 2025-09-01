@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { AdminSidebar } from "@/components/AdminSidebar";
 import { GroupCard } from "@/components/GroupCard";
@@ -6,6 +6,9 @@ import { NewGroupModal } from "@/components/modals/NewGroupModal";
 import { EditGroupModal } from "@/components/modals/EditGroupModal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 import { Plus, Search, Edit } from "lucide-react";
 import type { Group } from "@shared/schema";
 
@@ -13,6 +16,9 @@ export default function Groups() {
   const [searchTerm, setSearchTerm] = useState("");
   const [isNewGroupModalOpen, setIsNewGroupModalOpen] = useState(false);
   const [editingGroup, setEditingGroup] = useState<Group | null>(null);
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const { data: groups = [], isLoading } = useQuery({
     queryKey: ["/api/groups"],
@@ -30,6 +36,36 @@ export default function Groups() {
     const groupMembers = members.filter((m: any) => m.groupId === groupId);
     const totalSavings = groupMembers.reduce((sum: number, m: any) => sum + parseFloat(m.savingsBalance || 0), 0);
     return { memberCount: groupMembers.length, totalSavings };
+  };
+
+  // Check if user is admin
+  const isAdmin = user?.role === 'admin';
+
+  // Delete group mutation
+  const deleteGroupMutation = useMutation({
+    mutationFn: (groupId: string) => apiRequest(`/api/groups/${groupId}`, {
+      method: 'DELETE',
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/groups'] });
+      toast({
+        title: "Success",
+        description: "Group deleted successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete group",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleDeleteGroup = (group: Group) => {
+    if (window.confirm(`Are you sure you want to delete the group "${group.name}"? This action cannot be undone.`)) {
+      deleteGroupMutation.mutate(group.id);
+    }
   };
 
   if (isLoading) {
@@ -116,6 +152,8 @@ export default function Groups() {
                     memberCount={stats.memberCount}
                     totalSavings={stats.totalSavings}
                     onEditClick={(group) => setEditingGroup(group)}
+                    onDeleteClick={isAdmin ? handleDeleteGroup : undefined}
+                    showDeleteButton={isAdmin}
                   />
                 );
               })}

@@ -553,11 +553,6 @@ export class DatabaseStorage implements IStorage {
       const allMembers = await db.select().from(members).where(eq(members.isActive, true));
       const allLoans = await db.select().from(loans);
       
-      console.log("=== DASHBOARD STATS DEBUG ===");
-      console.log(`Found ${allGroups.length} active groups:`, allGroups.map(g => g.name));
-      console.log(`Found ${allMembers.length} active members:`, allMembers.map(m => `${m.firstName} ${m.lastName} (loan: ${m.currentLoan})`));
-      console.log(`Found ${allLoans.length} total loans:`, allLoans.map(l => `${l.amount} (${l.status})`));
-      
       const totalGroups = allGroups.length;
       const totalMembers = allMembers.length;
       const maleMembers = allMembers.filter(m => m.gender === 'M').length;
@@ -573,11 +568,8 @@ export class DatabaseStorage implements IStorage {
       
       const totalCurrentLoans = allMembers.reduce((total, member) => {
         const loanAmount = parseFloat(member.currentLoan || '0');
-        console.log(`Member ${member.firstName} ${member.lastName}: loan ${loanAmount}`);
         return total + loanAmount;
       }, 0);
-      
-      console.log(`CALCULATED TOTAL LOANS: ${totalCurrentLoans}`);
       
       const totalCashInBox = totalSavings - totalCurrentLoans;
       
@@ -595,13 +587,6 @@ export class DatabaseStorage implements IStorage {
       
       // Interest is the difference between what was paid back and what was disbursed
       const totalInterest = totalPayments - totalDisbursed;
-      
-      console.log(`LOAN PAYMENTS: ${totalPayments}`);
-      console.log(`LOAN DISBURSEMENTS: ${totalDisbursed}`);
-      console.log(`ACTUAL INTEREST EARNED: ${totalInterest}`);
-      
-      console.log(`CALCULATED TOTAL INTEREST: ${totalInterest}`);
-      console.log("=== END DASHBOARD STATS DEBUG ===");
 
       return {
         totalGroups,
