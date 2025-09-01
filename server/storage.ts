@@ -476,7 +476,7 @@ export class DatabaseStorage implements IStorage {
       totalWelfare: parseFloat(welfareSum.sum || '0'),
       totalShares: parseInt(sharesSum.sum || '0'),
       shareValue,
-      totalCashInBox: totalSavings - totalOriginalLoans, // Use original loan amount for cash calculation
+      totalCashInBox: totalSavings - totalLoansOutstanding, // Cash in box = total savings - total loans outstanding
       totalLoansOutstanding,
       groupWelfareAmount: parseFloat(group.welfareAmount || '0'),
       interestRate,
