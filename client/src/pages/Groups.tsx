@@ -1,21 +1,21 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { AdminSidebar } from "@/components/AdminSidebar";
-import { GroupCard } from "@/components/GroupCard";
 import { NewGroupModal } from "@/components/modals/NewGroupModal";
 import { EditGroupModal } from "@/components/modals/EditGroupModal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
-import { Plus, Search, Edit } from "lucide-react";
+import { Plus, Search, Edit, Trash2, MapPin, DollarSign, Users } from "lucide-react";
 import type { Group } from "@shared/schema";
 
 export default function Groups() {
   const [searchTerm, setSearchTerm] = useState("");
   const [isNewGroupModalOpen, setIsNewGroupModalOpen] = useState(false);
   const [editingGroup, setEditingGroup] = useState<Group | null>(null);
+  const [groupToDelete, setGroupToDelete] = useState<Group | null>(null);
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -28,12 +28,12 @@ export default function Groups() {
     queryKey: ["/api/members"],
   });
 
-  const filteredGroups = groups.filter((group: any) =>
+  const filteredGroups = (groups as any[]).filter((group: any) =>
     group.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const getGroupStats = (groupId: string) => {
-    const groupMembers = members.filter((m: any) => m.groupId === groupId);
+    const groupMembers = (members as any[]).filter((m: any) => m.groupId === groupId);
     const totalSavings = groupMembers.reduce((sum: number, m: any) => sum + parseFloat(m.savingsBalance || 0), 0);
     return { memberCount: groupMembers.length, totalSavings };
   };
@@ -43,9 +43,17 @@ export default function Groups() {
 
   // Delete group mutation
   const deleteGroupMutation = useMutation({
-    mutationFn: (groupId: string) => apiRequest(`/api/groups/${groupId}`, {
-      method: 'DELETE',
-    }),
+    mutationFn: async (groupId: string) => {
+      const response = await fetch(`/api/groups/${groupId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to delete group');
+      }
+      return response.json();
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/groups'] });
       toast({
@@ -62,9 +70,10 @@ export default function Groups() {
     },
   });
 
-  const handleDeleteGroup = (group: Group) => {
-    if (window.confirm(`Are you sure you want to delete the group "${group.name}"? This action cannot be undone.`)) {
-      deleteGroupMutation.mutate(group.id);
+  const handleDeleteGroup = () => {
+    if (groupToDelete) {
+      deleteGroupMutation.mutate(groupToDelete.id);
+      setGroupToDelete(null);
     }
   };
 
@@ -124,7 +133,7 @@ export default function Groups() {
             </div>
           </div>
 
-          {/* Groups Grid */}
+          {/* Groups List */}
           {filteredGroups.length === 0 ? (
             <div className="text-center py-12">
               <div className="w-24 h-24 mx-auto bg-muted rounded-full flex items-center justify-center mb-4">
@@ -142,19 +151,101 @@ export default function Groups() {
               )}
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredGroups.map((group: any) => {
+            <div className="space-y-4">
+              {filteredGroups.map((group: any, index: number) => {
                 const stats = getGroupStats(group.id);
                 return (
-                  <GroupCard
+                  <div 
                     key={group.id}
-                    group={group}
-                    memberCount={stats.memberCount}
-                    totalSavings={stats.totalSavings}
-                    onEditClick={(group) => setEditingGroup(group)}
-                    onDeleteClick={isAdmin ? handleDeleteGroup : undefined}
-                    showDeleteButton={isAdmin}
-                  />
+                    className="flex items-center justify-between p-4 rounded-lg border border-border hover:bg-muted/25 transition-colors"
+                    data-testid={`group-list-item-${group.id}`}
+                  >
+                    <div className="flex items-center space-x-4">
+                      <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
+                        <span className="text-lg font-bold text-primary" data-testid={`group-number-${group.id}`}>
+                          {index + 1}
+                        </span>
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-lg text-foreground" data-testid={`group-name-${group.id}`}>
+                          {group.name}
+                        </h3>
+                        <div className="flex items-center gap-6 mt-1">
+                          <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                            <MapPin className="h-4 w-4" />
+                            <span data-testid={`group-location-${group.id}`}>{group.location || 'No location set'}</span>
+                          </div>
+                          <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                            <DollarSign className="h-4 w-4" />
+                            <span data-testid={`group-savings-${group.id}`}>${stats.totalSavings.toFixed(2)} saved</span>
+                          </div>
+                          <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                            <Users className="h-4 w-4" />
+                            <span data-testid={`group-members-${group.id}`}>{stats.memberCount} members</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      <div className="text-right mr-4">
+                        <p className={`text-sm font-medium ${group.isActive ? 'text-green-600' : 'text-gray-600'}`}>
+                          {group.isActive ? 'Active' : 'Inactive'}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Interest: {group.interestRate || '0'}% monthly
+                        </p>
+                      </div>
+                      
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setEditingGroup(group)}
+                        className="flex items-center gap-1"
+                        data-testid={`edit-group-${group.id}`}
+                      >
+                        <Edit className="h-4 w-4" />
+                        Edit
+                      </Button>
+                      
+                      {isAdmin && (
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="flex items-center gap-1 text-red-600 hover:text-red-700 hover:bg-red-50"
+                              data-testid={`delete-group-${group.id}`}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                              Delete
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete Group</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Are you sure you want to delete the group "{group.name}"? 
+                                This action cannot be undone and will permanently remove all group data.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction 
+                                onClick={() => {
+                                  setGroupToDelete(group);
+                                  handleDeleteGroup();
+                                }}
+                                className="bg-red-600 hover:bg-red-700"
+                              >
+                                Delete Group
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      )}
+                    </div>
+                  </div>
                 );
               })}
             </div>
