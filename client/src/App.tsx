@@ -50,6 +50,15 @@ function Router() {
   const isStaffAuthenticated = isAuthenticated && user?.role;
   const isMemberAuthenticated = memberSession?.member;
   
+  // Debug logging
+  console.log('Auth State Debug:', {
+    isAuthenticated,
+    userRole: user?.role,
+    isStaffAuthenticated,
+    isMemberAuthenticated: !!isMemberAuthenticated,
+    memberSessionKeys: memberSession ? Object.keys(memberSession) : null
+  });
+  
   // If no authentication at all, show login
   if (!isStaffAuthenticated && !isMemberAuthenticated) {
     return (
@@ -66,6 +75,11 @@ function Router() {
   const isFieldMonitor = isStaffAuthenticated && user?.role === 'field_monitor' && !isMemberAuthenticated;
   const isFieldAttendant = isStaffAuthenticated && user?.role === 'field_attendant' && !isMemberAuthenticated;
   const isMember = isMemberAuthenticated && !isStaffAuthenticated;
+  
+  // Debug member routing
+  console.log('Role Resolution:', {
+    isAdmin, isFieldMonitor, isFieldAttendant, isMember
+  });
   
   // Member permission levels
   const isGroupLeader = isMember && memberSession?.member && ['chairman', 'secretary', 'finance'].includes(memberSession.member.groupRole);
