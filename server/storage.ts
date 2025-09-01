@@ -584,22 +584,21 @@ export class DatabaseStorage implements IStorage {
       const activeLoans = allLoans.filter(loan => loan.status === 'active' || loan.status === 'approved').length;
       const totalLoansGiven = totalCurrentLoans;
       
-      // Calculate total interest from current loans based on group interest rates
-      // For VSLA systems, calculate monthly interest on outstanding loans
-      const totalInterest = allMembers.reduce((total, member) => {
-        const currentLoanAmount = parseFloat(member.currentLoan || '0');
-        if (currentLoanAmount > 0) {
-          // Find the member's group to get interest rate
-          const memberGroup = allGroups.find(g => g.id === member.groupId);
-          const groupInterestRate = memberGroup ? parseFloat(memberGroup.interestRate || '2.0') : 2.0;
-          
-          // Calculate monthly interest (rate is monthly percentage)
-          const monthlyInterest = currentLoanAmount * (groupInterestRate / 100);
-          console.log(`Member ${member.firstName} interest: ${currentLoanAmount} * ${groupInterestRate}% = ${monthlyInterest}`);
-          return total + monthlyInterest;
-        }
-        return total;
-      }, 0);
+      // Calculate actual interest earned from loan payments
+      // Get all loan-related transactions
+      const allTransactions = await db.select().from(transactions);
+      const loanPayments = allTransactions.filter(t => t.type === 'loan_payment');
+      const loanDisbursements = allTransactions.filter(t => t.type === 'loan_disbursement');
+      
+      const totalPayments = loanPayments.reduce((sum, t) => sum + parseFloat(t.amount), 0);
+      const totalDisbursed = loanDisbursements.reduce((sum, t) => sum + parseFloat(t.amount), 0);
+      
+      // Interest is the difference between what was paid back and what was disbursed
+      const totalInterest = totalPayments - totalDisbursed;
+      
+      console.log(`LOAN PAYMENTS: ${totalPayments}`);
+      console.log(`LOAN DISBURSEMENTS: ${totalDisbursed}`);
+      console.log(`ACTUAL INTEREST EARNED: ${totalInterest}`);
       
       console.log(`CALCULATED TOTAL INTEREST: ${totalInterest}`);
       console.log("=== END DASHBOARD STATS DEBUG ===");
