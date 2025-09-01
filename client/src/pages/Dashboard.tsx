@@ -35,10 +35,26 @@ export default function Dashboard() {
     queryKey: ["/api/transactions"],
   });
 
-  // Fetch members to get names for transactions
+  // Fetch members to get names for transactions and calculate interest
   const { data: members = [] } = useQuery({
     queryKey: ["/api/members"],
   });
+
+  // Calculate total interest from current loan amounts (assuming 10% monthly rate)
+  const calculateTotalInterest = () => {
+    if (!members.length) return 0;
+    
+    return members.reduce((total: number, member: any) => {
+      const loanAmount = parseFloat(member.currentLoan || '0');
+      if (loanAmount > 0) {
+        // Assume 10% monthly interest rate for VSLA loans
+        // For display purposes, show monthly interest accumulation
+        const monthlyInterest = loanAmount * 0.10;
+        return total + monthlyInterest;
+      }
+      return total;
+    }, 0);
+  };
 
   const getMemberName = (memberId: string) => {
     const member = members.find((m: any) => m.id === memberId);
@@ -173,11 +189,11 @@ export default function Dashboard() {
             />
             <StatsCard
               title="Total Interest"
-              value={formatCurrency(stats?.totalInterest || 0)}
+              value={formatCurrency(calculateTotalInterest())}
               icon={FileText}
               iconColor="text-indigo-600"
               iconBgColor="bg-indigo-100"
-              trend={{ value: formatCurrency(stats?.totalInterest || 0), label: "interest earned" }}
+              trend={{ value: formatCurrency(calculateTotalInterest()), label: "monthly interest (10%)" }}
             />
           </div>
 
