@@ -95,12 +95,7 @@ export default function Meetings() {
             </div>
             {canScheduleMeetings ? (
               <Button 
-                onClick={() => {
-                  console.log('Schedule Meeting button clicked');
-                  console.log('User role:', user?.role);
-                  console.log('Can schedule meetings:', canScheduleMeetings);
-                  setIsScheduleModalOpen(true);
-                }}
+                onClick={() => setIsScheduleModalOpen(true)}
                 data-testid="button-schedule-meeting"
               >
                 <Plus className="w-4 h-4 mr-2" />
@@ -233,10 +228,7 @@ export default function Meetings() {
               </p>
               {selectedGroupId === "all" && selectedStatus === "all" && canScheduleMeetings && (
                 <Button 
-                  onClick={() => {
-                    console.log('Schedule First Meeting button clicked');
-                    setIsScheduleModalOpen(true);
-                  }}
+                  onClick={() => setIsScheduleModalOpen(true)}
                   data-testid="button-first-meeting"
                 >
                   <Plus className="w-4 h-4 mr-2" />
