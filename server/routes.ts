@@ -118,6 +118,90 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Search endpoint with role-based filtering by group name, member name, location, and user ID
+  app.get('/api/search', isAuthenticated, async (req: any, res) => {
+    try {
+      const { q, type = 'members' } = req.query as { q: string; type: string };
+      const userRole = req.userRole;
+      const userId = req.userId;
+      
+      if (!q || q.trim().length < 2) {
+        return res.json([]);
+      }
+      
+      let results = [];
+      
+      if (type === 'members') {
+        let allMembers = [];
+        
+        if (userRole === 'admin') {
+          // Admin can search ALL members
+          allMembers = await storage.getMembers();
+        } else if (userRole === 'field_monitor') {
+          // Field monitor can search members from assigned groups only
+          const user = await storage.getUser(userId);
+          const assignedGroupIds = user?.assignedGroups || [];
+          if (assignedGroupIds.length > 0) {
+            allMembers = await storage.getMembersByGroupIds(assignedGroupIds);
+          }
+        } else if (userRole === 'field_attendant') {
+          // Field attendant can search members from groups they enrolled
+          const enrolledGroups = await storage.getGroupsByCreator(userId);
+          const groupIds = enrolledGroups.map(g => g.id);
+          if (groupIds.length > 0) {
+            allMembers = await storage.getMembersByGroupIds(groupIds);
+          }
+        } else {
+          // Members can only search within their own group
+          const memberSession = req.session.memberSession;
+          if (memberSession?.member) {
+            allMembers = await storage.getMembers(memberSession.member.groupId);
+          }
+        }
+        
+        // Filter by member name, user ID, phone
+        results = allMembers.filter(member =>
+          member.firstName.toLowerCase().includes(q.toLowerCase()) ||
+          member.lastName.toLowerCase().includes(q.toLowerCase()) ||
+          member.phone?.includes(q) ||
+          member.email?.toLowerCase().includes(q.toLowerCase()) ||
+          member.id.toLowerCase().includes(q.toLowerCase())
+        );
+      } else if (type === 'groups') {
+        let allGroups = [];
+        
+        if (userRole === 'admin') {
+          // Admin can search ALL groups
+          allGroups = await storage.getGroups();
+        } else if (userRole === 'field_monitor') {
+          // Field monitor can search assigned groups only
+          const user = await storage.getUser(userId);
+          const assignedGroupIds = user?.assignedGroups || [];
+          allGroups = await storage.getGroupsByIds(assignedGroupIds);
+        } else if (userRole === 'field_attendant') {
+          // Field attendant can search groups they enrolled
+          allGroups = await storage.getGroupsByCreator(userId);
+        } else {
+          // Members cannot search groups directly
+          return res.status(403).json({ message: "Access denied" });
+        }
+        
+        // Filter by group name, location, user ID
+        results = allGroups.filter(group =>
+          group.name.toLowerCase().includes(q.toLowerCase()) ||
+          group.location?.toLowerCase().includes(q.toLowerCase()) ||
+          group.id.toLowerCase().includes(q.toLowerCase()) ||
+          group.createdBy?.toLowerCase().includes(q.toLowerCase())
+        );
+      }
+      
+      res.json(results);
+    } catch (error) {
+      console.error("Error searching:", error);
+      res.status(500).json({ message: "Search failed" });
+    }
+  });
+
   // Group-specific statistics for members
   app.get('/api/groups/:id/stats', isAuthenticated, async (req, res) => {
     try {
@@ -388,11 +472,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Group routes
-  app.get('/api/groups', isAuthenticated, async (req, res) => {
+  // Group routes with role-based filtering
+  app.get('/api/groups', isAuthenticated, async (req: any, res) => {
     try {
-      const groups = await storage.getGroups();
-      res.json(groups);
+      const userRole = req.userRole;
+      const userId = req.userId;
+      
+      if (userRole === 'admin') {
+        // Admin sees ALL groups
+        const groups = await storage.getGroups();
+        res.json(groups);
+      } else if (userRole === 'field_monitor') {
+        // Field monitor sees only assigned groups by admin
+        const user = await storage.getUser(userId);
+        const assignedGroupIds = user?.assignedGroups || [];
+        const groups = await storage.getGroupsByIds(assignedGroupIds);
+        res.json(groups);
+      } else if (userRole === 'field_attendant') {
+        // Field attendant sees only groups they enrolled (created)
+        const groups = await storage.getGroupsByCreator(userId);
+        res.json(groups);
+      } else {
+        // Members/other roles - no direct group access via this endpoint
+        res.status(403).json({ message: "Access denied" });
+      }
     } catch (error) {
       console.error("Error fetching groups:", error);
       res.status(500).json({ message: "Failed to fetch groups" });
@@ -461,20 +564,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Member routes
-  app.get('/api/members', isAuthenticated, async (req, res) => {
+  // Member routes with role-based filtering
+  app.get('/api/members', isAuthenticated, async (req: any, res) => {
     try {
+      const userRole = req.userRole;
+      const userId = req.userId;
       const groupId = req.query.groupId as string;
-      const members = await storage.getMembers(groupId);
-      res.json(members);
+      
+      if (userRole === 'admin') {
+        // Admin sees all members
+        const members = await storage.getMembers(groupId);
+        res.json(members);
+      } else if (userRole === 'field_monitor') {
+        // Field monitor sees members from assigned groups only
+        const user = await storage.getUser(userId);
+        const assignedGroupIds = user?.assignedGroups || [];
+        if (groupId && !assignedGroupIds.includes(groupId)) {
+          return res.status(403).json({ message: "Access denied to this group" });
+        }
+        const members = await storage.getMembers(groupId);
+        res.json(members);
+      } else if (userRole === 'field_attendant') {
+        // Field attendant sees members from groups they enrolled only
+        if (groupId) {
+          const group = await storage.getGroup(groupId);
+          if (!group || group.createdBy !== userId) {
+            return res.status(403).json({ message: "Access denied to this group" });
+          }
+        }
+        const members = await storage.getMembers(groupId);
+        res.json(members);
+      } else {
+        // Member authentication - can only see their own group members
+        const memberSession = req.session.memberSession;
+        if (!memberSession?.member) {
+          return res.status(403).json({ message: "Member session required" });
+        }
+        const allowedGroupId = memberSession.member.groupId;
+        if (groupId && groupId !== allowedGroupId) {
+          return res.status(403).json({ message: "Access denied to this group" });
+        }
+        const members = await storage.getMembers(allowedGroupId);
+        res.json(members);
+      }
     } catch (error) {
       console.error("Error fetching members:", error);
       res.status(500).json({ message: "Failed to fetch members" });
     }
   });
 
-  app.post('/api/members', isAuthenticated, async (req, res) => {
+  app.post('/api/members', isAuthenticated, async (req: any, res) => {
     try {
+      const userRole = req.userRole;
+      
+      // Check permissions - only admin, field staff, or group leaders can create members
+      if (userRole === 'admin' || userRole === 'field_monitor' || userRole === 'field_attendant') {
+        // Field staff can create members
+      } else {
+        // For members, only chairman, secretary, finance can create members
+        const memberSession = req.session.memberSession;
+        if (!memberSession?.member || !['chairman', 'secretary', 'finance'].includes(memberSession.member.groupRole)) {
+          return res.status(403).json({ message: "Only group leaders can add new members" });
+        }
+      }
+      
       const memberData = insertMemberSchema.parse(req.body);
       const member = await storage.createMember(memberData);
       res.json(member);
@@ -519,13 +672,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Transaction routes
-  app.get('/api/transactions', isAuthenticated, async (req, res) => {
+  // Transaction routes with role-based filtering
+  app.get('/api/transactions', isAuthenticated, async (req: any, res) => {
     try {
+      const userRole = req.userRole;
+      const userId = req.userId;
       const groupId = req.query.groupId as string;
       const memberId = req.query.memberId as string;
-      const transactions = await storage.getTransactions(groupId, memberId);
-      res.json(transactions);
+      
+      if (userRole === 'admin') {
+        // Admin sees ALL transactions
+        const transactions = await storage.getTransactions(groupId, memberId);
+        res.json(transactions);
+      } else if (userRole === 'field_monitor') {
+        // Field monitor sees transactions from assigned groups only
+        const user = await storage.getUser(userId);
+        const assignedGroupIds = user?.assignedGroups || [];
+        if (groupId && !assignedGroupIds.includes(groupId)) {
+          return res.status(403).json({ message: "Access denied to this group's transactions" });
+        }
+        const transactions = await storage.getTransactions(groupId, memberId);
+        res.json(transactions);
+      } else if (userRole === 'field_attendant') {
+        // Field attendant sees transactions from groups they enrolled only
+        if (groupId) {
+          const group = await storage.getGroup(groupId);
+          if (!group || group.createdBy !== userId) {
+            return res.status(403).json({ message: "Access denied to this group's transactions" });
+          }
+        }
+        const transactions = await storage.getTransactions(groupId, memberId);
+        res.json(transactions);
+      } else {
+        // Member authentication - can only see their own group's transactions
+        const memberSession = req.session.memberSession;
+        if (!memberSession?.member) {
+          return res.status(403).json({ message: "Member session required" });
+        }
+        const allowedGroupId = memberSession.member.groupId;
+        if (groupId && groupId !== allowedGroupId) {
+          return res.status(403).json({ message: "Access denied to this group's transactions" });
+        }
+        const transactions = await storage.getTransactions(allowedGroupId, memberId);
+        res.json(transactions);
+      }
     } catch (error) {
       console.error("Error fetching transactions:", error);
       res.status(500).json({ message: "Failed to fetch transactions" });
@@ -534,6 +724,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/transactions', isAuthenticated, async (req: any, res) => {
     try {
+      const userRole = req.userRole;
+      const userId = req.userId;
+      
+      // Check permissions - only admin, field staff, or group leaders can submit transactions
+      if (userRole === 'admin' || userRole === 'field_monitor' || userRole === 'field_attendant') {
+        // Field staff can submit
+      } else {
+        // For members, only chairman, secretary, finance can submit
+        const memberSession = req.session.memberSession;
+        if (!memberSession?.member || !['chairman', 'secretary', 'finance'].includes(memberSession.member.groupRole)) {
+          return res.status(403).json({ message: "Only group leaders can submit transactions" });
+        }
+      }
+      
       const transactionData = insertTransactionSchema.parse({
         ...req.body,
         createdBy: req.userId
@@ -550,21 +754,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Loan routes
-  app.get('/api/loans', isAuthenticated, async (req, res) => {
+  // Loan routes with role-based filtering
+  app.get('/api/loans', isAuthenticated, async (req: any, res) => {
     try {
+      const userRole = req.userRole;
+      const userId = req.userId;
       const groupId = req.query.groupId as string;
       const memberId = req.query.memberId as string;
-      const loans = await storage.getLoans(groupId, memberId);
-      res.json(loans);
+      
+      if (userRole === 'admin') {
+        // Admin sees ALL loans
+        const loans = await storage.getLoans(groupId, memberId);
+        res.json(loans);
+      } else if (userRole === 'field_monitor') {
+        // Field monitor sees loans from assigned groups only
+        const user = await storage.getUser(userId);
+        const assignedGroupIds = user?.assignedGroups || [];
+        if (groupId && !assignedGroupIds.includes(groupId)) {
+          return res.status(403).json({ message: "Access denied to this group's loans" });
+        }
+        const loans = await storage.getLoans(groupId, memberId);
+        res.json(loans);
+      } else if (userRole === 'field_attendant') {
+        // Field attendant sees loans from groups they enrolled only
+        if (groupId) {
+          const group = await storage.getGroup(groupId);
+          if (!group || group.createdBy !== userId) {
+            return res.status(403).json({ message: "Access denied to this group's loans" });
+          }
+        }
+        const loans = await storage.getLoans(groupId, memberId);
+        res.json(loans);
+      } else {
+        // Member authentication - can only see their own group's loans
+        const memberSession = req.session.memberSession;
+        if (!memberSession?.member) {
+          return res.status(403).json({ message: "Member session required" });
+        }
+        const allowedGroupId = memberSession.member.groupId;
+        if (groupId && groupId !== allowedGroupId) {
+          return res.status(403).json({ message: "Access denied to this group's loans" });
+        }
+        const loans = await storage.getLoans(allowedGroupId, memberId);
+        res.json(loans);
+      }
     } catch (error) {
       console.error("Error fetching loans:", error);
       res.status(500).json({ message: "Failed to fetch loans" });
     }
   });
 
-  app.post('/api/loans', isAuthenticated, async (req, res) => {
+  app.post('/api/loans', isAuthenticated, async (req: any, res) => {
     try {
+      const userRole = req.userRole;
+      
+      // Check permissions - only admin, field staff, or group leaders can submit loans
+      if (userRole === 'admin' || userRole === 'field_monitor' || userRole === 'field_attendant') {
+        // Field staff can submit
+      } else {
+        // For members, only chairman, secretary, finance can submit
+        const memberSession = req.session.memberSession;
+        if (!memberSession?.member || !['chairman', 'secretary', 'finance'].includes(memberSession.member.groupRole)) {
+          return res.status(403).json({ message: "Only group leaders can submit loans" });
+        }
+      }
+      
       const loanData = insertLoanSchema.parse(req.body);
       
       // Get group info to calculate interest

@@ -63,8 +63,13 @@ function Router() {
 
   // STRICT ROLE DEFINITIONS - only one can be true at a time
   const isAdmin = isStaffAuthenticated && user?.role === 'admin' && !isMemberAuthenticated;
-  const isFieldStaff = isStaffAuthenticated && user?.role === 'field' && !isMemberAuthenticated;
+  const isFieldMonitor = isStaffAuthenticated && user?.role === 'field_monitor' && !isMemberAuthenticated;
+  const isFieldAttendant = isStaffAuthenticated && user?.role === 'field_attendant' && !isMemberAuthenticated;
   const isMember = isMemberAuthenticated && !isStaffAuthenticated;
+  
+  // Member permission levels
+  const isGroupLeader = isMember && memberSession?.member && ['chairman', 'secretary', 'finance'].includes(memberSession.member.groupRole);
+  const isRegularMember = isMember && memberSession?.member?.groupRole === 'member';
   
   return (
     <Switch>
@@ -72,13 +77,13 @@ function Router() {
       <Route path="/reset" component={Reset} />
       <Route path="/login" component={Login} />
       
-      {/* MEMBER ROUTES - Highest Priority */}
+      {/* MEMBER ROUTES - Highest Priority - Members can only see their group's data */}
       {isMember && (
         <>
           <Route path="/member-dashboard/:memberId" component={MemberDashboard} />
           <Route path="/member-dashboard" component={MemberDashboard} />
-          {/* Member leadership can access these pages */}
-          {memberSession?.member && ['chairman', 'secretary', 'finance'].includes(memberSession.member.groupRole) && (
+          {/* ONLY chairman, secretary, finance can submit data - regular members VIEW ONLY */}
+          {isGroupLeader && (
             <>
               <Route path="/members" component={Members} />
               <Route path="/submit-savings" component={SubmitSavingsPage} />
@@ -86,25 +91,46 @@ function Router() {
               <Route path="/loan-submission" component={LoanSubmissionPage} />
             </>
           )}
+          {/* Regular members can only view - no editing access */}
+          {isRegularMember && (
+            <>
+              <Route path="/members" component={() => <Members readOnly={true} />} />
+            </>
+          )}
           {/* Default route for members */}
           <Route path="/" component={MemberDashboard} />
         </>
       )}
       
-      {/* FIELD STAFF ROUTES - Second Priority */}
-      {isFieldStaff && (
+      {/* FIELD MONITOR ROUTES - See only assigned groups by admin */}
+      {isFieldMonitor && (
         <>
           <Route path="/field-dashboard" component={FieldDashboard} />
           <Route path="/members" component={Members} />
           <Route path="/submit-savings" component={SubmitSavingsPage} />
           <Route path="/loan-payments" component={LoanPaymentsPage} />
           <Route path="/loan-submission" component={LoanSubmissionPage} />
-          {/* Default route for field staff */}
+          <Route path="/groups" component={Groups} />
+          <Route path="/groups/:groupId" component={GroupDetails} />
           <Route path="/" component={FieldDashboard} />
         </>
       )}
       
-      {/* ADMIN ROUTES - Lowest Priority */}
+      {/* FIELD ATTENDANT ROUTES - See only groups they enrolled */}
+      {isFieldAttendant && (
+        <>
+          <Route path="/field-dashboard" component={FieldDashboard} />
+          <Route path="/members" component={Members} />
+          <Route path="/submit-savings" component={SubmitSavingsPage} />
+          <Route path="/loan-payments" component={LoanPaymentsPage} />
+          <Route path="/loan-submission" component={LoanSubmissionPage} />
+          <Route path="/groups" component={Groups} />
+          <Route path="/groups/:groupId" component={GroupDetails} />
+          <Route path="/" component={FieldDashboard} />
+        </>
+      )}
+      
+      {/* ADMIN ROUTES - See all groups and data */}
       {isAdmin && (
         <>
           <Route path="/groups" component={Groups} />
@@ -119,7 +145,6 @@ function Router() {
           <Route path="/submit-savings" component={SubmitSavingsPage} />
           <Route path="/loan-payments" component={LoanPaymentsPage} />
           <Route path="/loan-submission" component={LoanSubmissionPage} />
-          {/* Default route for admin */}
           <Route path="/" component={Dashboard} />
         </>
       )}

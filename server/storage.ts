@@ -23,7 +23,7 @@ import {
   type InsertCashbox,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, count, sum, gte, lte } from "drizzle-orm";
+import { eq, desc, and, count, sum, gte, lte, sql } from "drizzle-orm";
 
 export interface IStorage {
   // User operations
@@ -40,6 +40,8 @@ export interface IStorage {
   createGroup(group: InsertGroup): Promise<Group>;
   getGroups(): Promise<Group[]>;
   getGroup(id: string): Promise<Group | undefined>;
+  getGroupsByIds(ids: string[]): Promise<Group[]>;
+  getGroupsByCreator(creatorId: string): Promise<Group[]>;
   updateGroup(id: string, updates: Partial<Group>): Promise<Group | undefined>;
   deleteGroup(id: string): Promise<boolean>;
 
@@ -47,6 +49,7 @@ export interface IStorage {
   createMember(member: InsertMember): Promise<Member>;
   getMembers(groupId?: string): Promise<Member[]>;
   getMember(id: string): Promise<Member | undefined>;
+  getMembersByGroupIds(groupIds: string[]): Promise<Member[]>;
   updateMember(id: string, updates: Partial<Member>): Promise<Member | undefined>;
   deleteMember(id: string): Promise<boolean>;
 
@@ -183,6 +186,15 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(groups).orderBy(desc(groups.createdAt));
   }
 
+  async getGroupsByIds(ids: string[]): Promise<Group[]> {
+    if (ids.length === 0) return [];
+    return await db.select().from(groups).where(sql`${groups.id} = ANY(${ids})`).orderBy(desc(groups.createdAt));
+  }
+
+  async getGroupsByCreator(creatorId: string): Promise<Group[]> {
+    return await db.select().from(groups).where(eq(groups.createdBy, creatorId)).orderBy(desc(groups.createdAt));
+  }
+
   async getGroup(id: string): Promise<Group | undefined> {
     const [group] = await db.select().from(groups).where(eq(groups.id, id));
     return group;
@@ -227,6 +239,11 @@ export class DatabaseStorage implements IStorage {
   async getMemberByPhone(phone: string): Promise<Member | undefined> {
     const [member] = await db.select().from(members).where(eq(members.phone, phone));
     return member;
+  }
+
+  async getMembersByGroupIds(groupIds: string[]): Promise<Member[]> {
+    if (groupIds.length === 0) return [];
+    return await db.select().from(members).where(sql`${members.groupId} = ANY(${groupIds})`).orderBy(desc(members.createdAt));
   }
 
   async updateMember(id: string, updates: Partial<Member>): Promise<Member | undefined> {

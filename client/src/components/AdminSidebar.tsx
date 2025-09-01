@@ -24,17 +24,21 @@ import dreamersLogo from "@assets/updated logo the dreamers_1756291084041.png";
 
 // Navigation items with role-based access control
 const navigationItems = [
-  // Dashboard available to all authenticated users
-  { href: "/", icon: Home, label: "Dashboard", roles: ['chairman', 'secretary', 'finance', 'member', 'admin', 'field'] },
+  // Dashboard - available to all authenticated users
+  { href: "/", icon: Home, label: "Dashboard", roles: ['admin', 'field_monitor', 'field_attendant', 'chairman', 'secretary', 'finance', 'member'] },
   
-  // Group-level navigation for leadership roles (chairman, secretary, finance) and field staff
-  { href: "/members", icon: User, label: "Group Members", roles: ['chairman', 'secretary', 'finance', 'field'] },
-  { href: "/submit-savings", icon: PlusCircle, label: "Submit Savings", roles: ['chairman', 'secretary', 'finance', 'field'] },
-  { href: "/loan-submission", icon: FileText, label: "Loan Submission", roles: ['chairman', 'secretary', 'finance', 'field'] },
-  { href: "/loan-payments", icon: MinusCircle, label: "Loan Payments", roles: ['chairman', 'secretary', 'finance', 'field'] },
+  // Group Members - viewable by all, editable only by leaders and field staff
+  { href: "/members", icon: User, label: "Group Members", roles: ['admin', 'field_monitor', 'field_attendant', 'chairman', 'secretary', 'finance', 'member'] },
   
-  // Admin-only navigation for system administrators
-  { href: "/groups", icon: Users, label: "All Groups", roles: ['admin'] },
+  // VSLA Data Submission - ONLY chairman, secretary, finance can submit data
+  { href: "/submit-savings", icon: PlusCircle, label: "Submit Savings", roles: ['admin', 'field_monitor', 'field_attendant', 'chairman', 'secretary', 'finance'] },
+  { href: "/loan-submission", icon: FileText, label: "Loan Submission", roles: ['admin', 'field_monitor', 'field_attendant', 'chairman', 'secretary', 'finance'] },
+  { href: "/loan-payments", icon: MinusCircle, label: "Loan Payments", roles: ['admin', 'field_monitor', 'field_attendant', 'chairman', 'secretary', 'finance'] },
+  
+  // Group Management - field staff and admins
+  { href: "/groups", icon: Users, label: "Groups", roles: ['admin', 'field_monitor', 'field_attendant'] },
+  
+  // Admin-only system functions
   { href: "/transactions", icon: DollarSign, label: "All Transactions", roles: ['admin'] },
   { href: "/loans", icon: FileText, label: "All Loans", roles: ['admin'] },
   { href: "/loan-calculator", icon: Calculator, label: "Loan Calculator", roles: ['admin'] },

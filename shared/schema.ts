@@ -39,6 +39,7 @@ export const users = pgTable("users", {
   isActive: boolean("is_active").notNull().default(true),
   location: varchar("location"),
   assignedBy: varchar("assigned_by").references(() => users.id), // Who created this user
+  assignedGroups: text("assigned_groups").array(), // For field_monitor - groups they can access
   profileImageUrl: varchar("profile_image_url"),
   lastLogin: timestamp("last_login"),
   createdAt: timestamp("created_at").defaultNow(),
@@ -79,7 +80,7 @@ export const members = pgTable("members", {
   firstName: varchar("first_name", { length: 100 }).notNull(),
   lastName: varchar("last_name", { length: 100 }).notNull(),
   gender: varchar("gender", { length: 10 }).notNull(), // M or F
-  groupRole: varchar("group_role", { length: 20 }).notNull().default('member'), // member, secretary, finance, chairman
+  groupRole: varchar("group_role", { length: 20 }).notNull().default('member'), // ONLY: member, secretary, finance, chairman
   email: varchar("email", { length: 255 }),
   phone: varchar("phone", { length: 20 }),
   address: text("address"),
