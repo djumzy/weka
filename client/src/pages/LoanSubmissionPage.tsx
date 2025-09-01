@@ -50,10 +50,10 @@ export default function LoanSubmissionPage() {
   // Check if user is leadership role
   const isLeadershipRole = memberSession && ['chairman', 'secretary', 'finance'].includes(memberSession.member?.groupRole);
 
-  // Fetch groups (only for admin users)
+  // Fetch groups (for group selection and auto-detection of interest rates)
   const { data: groups = [] } = useQuery({
     queryKey: ["/api/groups"],
-    enabled: isAuthenticated && !isLeadershipRole, // Only fetch for admin users
+    enabled: isAuthenticated, // Enable for all authenticated users to support auto-detection
   });
 
   // Fetch all members for selected group (regardless of role)
@@ -160,7 +160,7 @@ export default function LoanSubmissionPage() {
     const autoGroupId = selectedMemberData?.groupId;
     
     // AUTO-DETECT: Get interest rate from group agreement
-    const groupData = groupsData?.find(group => group.id === autoGroupId);
+    const groupData = groups?.find((group: any) => group.id === autoGroupId);
     const autoInterestRate = groupData?.interestRate || 10; // Fallback to 10% if not found
 
     // Log data being sent for debugging with auto-detection info
