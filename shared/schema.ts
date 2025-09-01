@@ -28,7 +28,7 @@ export const sessions = pgTable(
 
 // User storage table for WEKA authentication system
 export const users = pgTable("users", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: varchar("id").primaryKey(),
   userId: varchar("user_id", { length: 8 }).unique().notNull(), // TDXXXXXX format
   firstName: varchar("first_name").notNull(),
   lastName: varchar("last_name").notNull(),
