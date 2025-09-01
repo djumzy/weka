@@ -14,6 +14,7 @@ import {
 } from "@shared/schema";
 import { generateUserId, hashPin, comparePin } from "./auth";
 import { z } from "zod";
+import QRCode from "qrcode";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware - using only internal auth system
@@ -168,8 +169,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "User not found" });
       }
 
-      // Import QRCode dynamically
-      const QRCode = require('qrcode');
+      // QRCode is already imported at the top
       
       // Create QR code data - contains user ID for login auto-fill
       const qrData = JSON.stringify({
