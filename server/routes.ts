@@ -14,6 +14,7 @@ import {
 } from "@shared/schema";
 import { generateUserId, hashPin, comparePin } from "./auth";
 import { z } from "zod";
+import { calculateLoanInterest, calculateLoanTotalDue } from "./calculations";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware - using only internal auth system
@@ -843,23 +844,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Group not found" });
       }
       
-      // Calculate interest amount and total repayment
+      // Calculate interest amount and total repayment using standardized formulas
       const principal = parseFloat(loanData.amount);
-      const monthlyInterestRate = parseFloat(group.interestRate || '0') / 100; // Convert percentage
+      const monthlyInterestRate = parseFloat(group.interestRate || '0');
       const months = loanData.repaymentPeriodMonths;
       
-      // Calculate total interest for the loan period
-      const totalInterest = principal * monthlyInterestRate * months;
-      const totalRepayment = principal + totalInterest;
+      // Use standardized calculation functions
+      const totalInterest = calculateLoanInterest(principal, monthlyInterestRate, months, false); // Simple interest for VSLA
+      const totalRepayment = calculateLoanTotalDue(principal, monthlyInterestRate, months, false);
       const monthlyPayment = totalRepayment / months;
       
       // Create loan with calculated values
       const loanWithCalculations = {
         ...loanData,
         status: 'approved' as const, // Auto-approve loans submitted by leadership
-        interestAmount: totalInterest.toString(),
-        totalAmount: totalRepayment.toString(),
-        monthlyPayment: monthlyPayment.toString()
+        totalAmountDue: totalRepayment.toString(),
+        remainingBalance: totalRepayment.toString(),
       };
       
       const loan = await storage.createLoan(loanWithCalculations);

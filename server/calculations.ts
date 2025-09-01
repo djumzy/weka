@@ -127,7 +127,7 @@ export function calculateGroupFinancials(
     return sum + memberShares;
   }, 0);
   
-  // FORMULA 2 & 3: Calculate interest from loans
+  // FORMULA 2 & 3: Calculate interest from loans using database data
   let totalOriginalLoans = 0;
   let totalInterestEarned = 0;
   
@@ -135,16 +135,27 @@ export function calculateGroupFinancials(
     const principal = parseFloat(loan.amount || '0');
     totalOriginalLoans += principal;
     
+    // Use stored interest amount if available, otherwise calculate
     if (loan.totalAmountDue) {
+      // Calculate from totalAmountDue - principal
       const totalDue = parseFloat(loan.totalAmountDue);
       totalInterestEarned += (totalDue - principal);
+    } else {
+      // Calculate using standard formula
+      const months = parseInt(loan.termMonths?.toString() || '1');
+      const interest = calculateLoanInterest(principal, interestRate, months, false);
+      totalInterestEarned += interest;
     }
   });
   
-  // If no loans data, estimate from member current loans
+  // If no loans data but members have outstanding loans, estimate from member balances
   if (loans.length === 0 && totalLoansOutstanding > 0) {
-    // Estimate original loans by working backwards from current loans
-    totalOriginalLoans = totalLoansOutstanding / (1 + (interestRate / 100));
+    // Estimate original loans using simple interest formula working backwards
+    // currentLoan = principal + (principal * rate/100 * months)
+    // For estimation, assume average 6 months and use group rate
+    const avgMonths = 6;
+    const rateFactor = 1 + ((interestRate / 100) * avgMonths);
+    totalOriginalLoans = totalLoansOutstanding / rateFactor;
     totalInterestEarned = totalLoansOutstanding - totalOriginalLoans;
   }
   
