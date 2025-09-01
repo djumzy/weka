@@ -532,49 +532,70 @@ export class DatabaseStorage implements IStorage {
     totalLoansGiven: number;
     totalInterest: number;
   }> {
-    const [groupCount] = await db.select({ count: count() }).from(groups).where(eq(groups.isActive, true));
-    const [memberCount] = await db.select({ count: count() }).from(members).where(eq(members.isActive, true));
-    const [maleCount] = await db.select({ count: count() }).from(members)
-      .where(and(eq(members.isActive, true), eq(members.gender, 'M')));
-    const [femaleCount] = await db.select({ count: count() }).from(members)
-      .where(and(eq(members.isActive, true), eq(members.gender, 'F')));
-    const [savingsSum] = await db.select({ sum: sum(members.savingsBalance) }).from(members)
-      .where(eq(members.isActive, true));
-    const [welfareSum] = await db.select({ sum: sum(members.welfareBalance) }).from(members)
-      .where(eq(members.isActive, true));
-    const [currentLoansSum] = await db.select({ sum: sum(members.currentLoan) }).from(members)
-      .where(eq(members.isActive, true));
-    // Calculate available cash in box: Total Savings - Total Loans Outstanding
-    const totalSavingsValue = parseFloat(savingsSum.sum || '0');
-    const totalCurrentLoans = parseFloat(currentLoansSum.sum || '0');
-    const availableCashInBox = totalSavingsValue - totalCurrentLoans;
+    try {
+      // Simple approach to avoid aggregate function issues
+      const allGroups = await db.select().from(groups).where(eq(groups.isActive, true));
+      const allMembers = await db.select().from(members).where(eq(members.isActive, true));
+      const allLoans = await db.select().from(loans);
+      
+      const totalGroups = allGroups.length;
+      const totalMembers = allMembers.length;
+      const maleMembers = allMembers.filter(m => m.gender === 'M').length;
+      const femaleMembers = allMembers.filter(m => m.gender === 'F').length;
+      
+      const totalSavings = allMembers.reduce((total, member) => {
+        return total + parseFloat(member.savingsBalance || '0');
+      }, 0);
+      
+      const totalWelfare = allMembers.reduce((total, member) => {
+        return total + parseFloat(member.welfareBalance || '0');
+      }, 0);
+      
+      const totalCurrentLoans = allMembers.reduce((total, member) => {
+        return total + parseFloat(member.currentLoan || '0');
+      }, 0);
+      
+      const totalCashInBox = totalSavings - totalCurrentLoans;
+      
+      const activeLoans = allLoans.filter(loan => loan.status === 'active').length;
+      const totalLoansGiven = totalCurrentLoans;
+      
+      // Calculate total interest from all loans
+      const totalInterest = allLoans.reduce((total, loan) => {
+        const originalAmount = parseFloat(loan.amount || '0');
+        const totalDue = parseFloat(loan.totalAmountDue || '0');
+        const interestEarned = totalDue - originalAmount;
+        return total + Math.max(0, interestEarned);
+      }, 0);
 
-    const [loanCount] = await db.select({ count: count() }).from(loans)
-      .where(eq(loans.status, 'active'));
-    const allLoans = await db.select().from(loans);
-    const totalLoansGiven = allLoans.reduce((total, loan) => total + parseFloat(loan.amount || '0'), 0);
-    
-    // Calculate total interest: Sum of ALL interest amounts from ALL loans (active, completed, etc.) across ALL groups for admin
-    const allLoansWithInterest = await db.select({
-      interestAmount: loans.interestAmount
-    }).from(loans);
-    
-    const totalInterest = allLoansWithInterest.reduce((total, loan) => {
-      return total + parseFloat(loan.interestAmount || '0');
-    }, 0);
-
-    return {
-      totalGroups: groupCount.count,
-      totalMembers: memberCount.count,
-      maleMembers: maleCount.count,
-      femaleMembers: femaleCount.count,
-      totalSavings: totalSavingsValue,
-      totalWelfare: parseFloat(welfareSum.sum || '0'),
-      totalCashInBox: availableCashInBox, // Total Savings - Total Loans Outstanding
-      activeLoans: loanCount.count,
-      totalLoansGiven: totalCurrentLoans, // Use currentLoan from members
-      totalInterest: totalInterest,
-    };
+      return {
+        totalGroups,
+        totalMembers,
+        maleMembers,
+        femaleMembers,
+        totalSavings,
+        totalWelfare,
+        totalCashInBox,
+        activeLoans,
+        totalLoansGiven,
+        totalInterest,
+      };
+    } catch (error) {
+      console.error("Error in getDashboardStats:", error);
+      // Return default values if there's an error
+      return {
+        totalGroups: 0,
+        totalMembers: 0,
+        maleMembers: 0,
+        femaleMembers: 0,
+        totalSavings: 0,
+        totalWelfare: 0,
+        totalCashInBox: 0,
+        activeLoans: 0,
+        totalLoansGiven: 0,
+        totalInterest: 0,
+      };
+    }
   }
 
   // Reporting methods
