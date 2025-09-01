@@ -9,6 +9,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { Link } from "wouter";
 import { Plus, Search, Edit, Trash2, MapPin, DollarSign, Users, Ban, CheckCircle, MoreVertical } from "lucide-react";
 import type { Group } from "@shared/schema";
 
@@ -197,14 +198,14 @@ export default function Groups() {
                     className="flex items-center justify-between p-4 rounded-lg border border-border hover:bg-muted/25 transition-colors"
                     data-testid={`group-list-item-${group.id}`}
                   >
-                    <div className="flex items-center space-x-4">
+                    <Link href={`/groups/${group.id}`} className="flex items-center space-x-4 flex-1 cursor-pointer">
                       <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
                         <span className="text-lg font-bold text-primary" data-testid={`group-number-${group.id}`}>
                           {index + 1}
                         </span>
                       </div>
                       <div className="flex-1">
-                        <h3 className="font-semibold text-lg text-foreground" data-testid={`group-name-${group.id}`}>
+                        <h3 className="font-semibold text-lg text-foreground hover:text-primary transition-colors" data-testid={`group-name-${group.id}`}>
                           {group.name}
                         </h3>
                         <div className="flex items-center gap-6 mt-1">
@@ -222,7 +223,7 @@ export default function Groups() {
                           </div>
                         </div>
                       </div>
-                    </div>
+                    </Link>
                     
                     <div className="flex items-center gap-2">
                       <div className="text-right mr-4">
