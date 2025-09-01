@@ -564,6 +564,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Validation and correction endpoint for standardized calculations
+  app.post('/api/groups/:id/validate-calculations', isAuthenticated, async (req, res) => {
+    try {
+      const groupId = req.params.id;
+      const result = await storage.validateAndFixGroupCalculations(groupId);
+      res.json({
+        message: "Calculations validated and corrected",
+        corrections: result.corrections,
+        summary: result.summary
+      });
+    } catch (error) {
+      console.error("Error validating calculations:", error);
+      res.status(500).json({ message: "Failed to validate calculations" });
+    }
+  });
+
   // Member routes with role-based filtering
   app.get('/api/members', isAuthenticated, async (req: any, res) => {
     try {
