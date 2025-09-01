@@ -157,14 +157,21 @@ export default function LoanSubmissionPage() {
     const numericTermMonths = parseInt(repaymentPeriod);
     const numericInterestRate = parseFloat(selectedGroupData?.interestRate || '10');
 
-    submitLoanMutation.mutate({
+    // Log data being sent for debugging
+    const loanSubmissionData = {
       groupId: selectedGroup,
       memberId: selectedMember,
       amount: numericAmount.toString(), // Convert back to string for decimal field
-      purpose: loanPurpose,
+      purpose: loanPurpose || '', // Ensure purpose is not undefined
       termMonths: numericTermMonths,
-      interestRate: numericInterestRate.toString() // Convert back to string for decimal field
-    });
+      interestRate: numericInterestRate.toString(), // Convert back to string for decimal field
+      status: 'pending' // Add explicit status field
+    };
+    
+    console.log('=== FRONTEND LOAN SUBMISSION ===');
+    console.log('Submitting loan data:', JSON.stringify(loanSubmissionData, null, 2));
+
+    submitLoanMutation.mutate(loanSubmissionData);
   };
 
   return (

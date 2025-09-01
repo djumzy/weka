@@ -794,6 +794,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
+      // Debug: Log the received request body
+      console.log('=== LOAN SUBMISSION DEBUG ===');
+      console.log('Received loan data:', JSON.stringify(req.body, null, 2));
+      
+      try {
+        const loanData = insertLoanSchema.parse(req.body);
+        console.log('Parsed loan data successfully:', loanData);
+      } catch (validationError) {
+        console.error('Validation failed:', validationError);
+        return res.status(400).json({ 
+          message: "Invalid loan data", 
+          errors: validationError.errors 
+        });
+      }
+      
       const loanData = insertLoanSchema.parse(req.body);
       
       // Get group info to calculate interest
