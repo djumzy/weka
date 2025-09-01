@@ -278,14 +278,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         memberUser = { id: '78d710c9-48fb-4e3b-8caa-d9f14fc7a57e' };
       }
       
-      // Set session for member authentication
+      // Set session for member authentication - DO NOT set userId to avoid staff auth conflict
       (req.session as any).memberId = member.id;
-      (req.session as any).userId = memberUser.id; // Store user ID for audit trail
       (req.session as any).userRole = 'member';
+      // Store audit user ID separately to avoid auth conflicts
+      (req.session as any).auditUserId = memberUser.id;
       
       console.log('Member session created:', {
         memberId: member.id,
-        userId: memberUser.id,
+        auditUserId: memberUser.id,
         userRole: 'member'
       });
       
