@@ -155,21 +155,30 @@ export default function LoanSubmissionPage() {
     // Convert string values to proper numeric types for validation
     const numericAmount = parseFloat(loanAmount);
     const numericTermMonths = parseInt(repaymentPeriod);
-    const numericInterestRate = parseFloat(selectedGroupData?.interestRate || '10');
+    
+    // AUTO-DETECT: Get group ID from selected member
+    const autoGroupId = selectedMemberData?.groupId;
+    
+    // AUTO-DETECT: Get interest rate from group agreement
+    const groupData = groupsData?.find(group => group.id === autoGroupId);
+    const autoInterestRate = groupData?.interestRate || 10; // Fallback to 10% if not found
 
-    // Log data being sent for debugging
+    // Log data being sent for debugging with auto-detection info
     const loanSubmissionData = {
-      groupId: selectedGroup,
-      memberId: selectedMember,
-      amount: numericAmount.toString(), // Convert back to string for decimal field
-      purpose: loanPurpose || '', // Ensure purpose is not undefined
+      groupId: autoGroupId, // AUTO-DETECTED from selected member
+      memberId: selectedMember, // Selected member ID
+      amount: numericAmount.toString(),
+      purpose: loanPurpose || '',
       termMonths: numericTermMonths,
-      interestRate: numericInterestRate.toString(), // Convert back to string for decimal field
-      status: 'pending' // Add explicit status field
+      interestRate: autoInterestRate.toString(), // AUTO-DETECTED from group agreement
+      status: 'approved' // AUTO-APPROVED
     };
     
-    console.log('=== FRONTEND LOAN SUBMISSION ===');
-    console.log('Submitting loan data:', JSON.stringify(loanSubmissionData, null, 2));
+    console.log('=== FRONTEND LOAN SUBMISSION (AUTO-DETECTION) ===');
+    console.log('✓ Auto-detected Group ID:', autoGroupId, 'from member:', selectedMemberData?.firstName, selectedMemberData?.lastName);
+    console.log('✓ Auto-detected Interest Rate:', autoInterestRate + '%', 'from group agreement');
+    console.log('✓ Auto-approved status: approved');
+    console.log('Full submission data:', JSON.stringify(loanSubmissionData, null, 2));
 
     submitLoanMutation.mutate(loanSubmissionData);
   };
