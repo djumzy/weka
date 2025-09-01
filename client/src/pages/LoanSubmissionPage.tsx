@@ -35,10 +35,7 @@ export default function LoanSubmissionPage() {
 
   const submitLoanMutation = useMutation({
     mutationFn: async (data: any) => {
-      return apiRequest('/api/loans', {
-        method: 'POST',
-        body: JSON.stringify(data),
-      });
+      return apiRequest('POST', '/api/loans', data);
     },
     onSuccess: () => {
       toast({
