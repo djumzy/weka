@@ -331,6 +331,21 @@ export class DatabaseStorage implements IStorage {
       ...loan,
       remainingBalance: loan.amount,
     }).returning();
+    
+    // If the loan is approved, update the member's currentLoan field
+    if (newLoan.status === 'approved') {
+      const currentMember = await this.getMember(newLoan.memberId);
+      if (currentMember) {
+        const currentLoanAmount = parseFloat(currentMember.currentLoan);
+        const newLoanAmount = parseFloat(newLoan.amount);
+        const updatedLoanAmount = currentLoanAmount + newLoanAmount;
+        
+        await this.updateMember(newLoan.memberId, {
+          currentLoan: updatedLoanAmount.toFixed(2)
+        });
+      }
+    }
+    
     return newLoan;
   }
 
