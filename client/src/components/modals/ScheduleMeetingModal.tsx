@@ -73,17 +73,21 @@ export function ScheduleMeetingModal({ open, onOpenChange, preselectedGroupId }:
 
   const scheduleMeetingMutation = useMutation({
     mutationFn: async (data: ScheduleMeetingFormData) => {
+      console.log('Mutation starting with data:', data);
       // Combine date and time
       const meetingDate = new Date(data.date);
       const [hours, minutes] = data.time.split(':');
       meetingDate.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0);
 
-      return apiRequest('/api/meetings', 'POST', {
+      const payload = {
         groupId: data.groupId,
         date: meetingDate.toISOString(),
         location: data.location || null,
         agenda: data.agenda || null,
-      });
+      };
+      console.log('Sending API request with payload:', payload);
+
+      return apiRequest('/api/meetings', 'POST', payload);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/meetings'] });
@@ -104,6 +108,9 @@ export function ScheduleMeetingModal({ open, onOpenChange, preselectedGroupId }:
   });
 
   const onSubmit = (data: ScheduleMeetingFormData) => {
+    console.log('Form submitted with data:', data);
+    console.log('User permissions check - canScheduleMeetings:', canScheduleMeetings);
+    console.log('Available groups:', availableGroups);
     scheduleMeetingMutation.mutate(data);
   };
 
