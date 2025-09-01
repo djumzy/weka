@@ -46,10 +46,9 @@ function Router() {
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
   }
 
-  // Determine user type and role
-  const isStaffAuthenticated = isAuthenticated && user?.role; // Staff have roles (admin, field)
+  // Determine user type and role - STRICT SEPARATION
+  const isStaffAuthenticated = isAuthenticated && user?.role;
   const isMemberAuthenticated = memberSession?.member;
-  const userRole = user?.role || memberSession?.member?.groupRole || 'guest';
   
   // If no authentication at all, show login
   if (!isStaffAuthenticated && !isMemberAuthenticated) {
@@ -62,10 +61,10 @@ function Router() {
     );
   }
 
-  // User is authenticated (either staff or member)
-  const isAdmin = isStaffAuthenticated && userRole === 'admin';
-  const isFieldStaff = isStaffAuthenticated && userRole === 'field';
-  const isMember = isMemberAuthenticated && ['chairman', 'secretary', 'finance', 'member'].includes(userRole);
+  // STRICT ROLE DEFINITIONS - only one can be true at a time
+  const isAdmin = isStaffAuthenticated && user?.role === 'admin' && !isMemberAuthenticated;
+  const isFieldStaff = isStaffAuthenticated && user?.role === 'field' && !isMemberAuthenticated;
+  const isMember = isMemberAuthenticated && !isStaffAuthenticated;
   
   return (
     <Switch>
@@ -73,12 +72,12 @@ function Router() {
       <Route path="/reset" component={Reset} />
       <Route path="/login" component={Login} />
       
-      {/* Member routes - only for authenticated members */}
-      {isMemberAuthenticated && (
+      {/* MEMBER ROUTES - Highest Priority */}
+      {isMember && (
         <>
           <Route path="/member-dashboard/:memberId" component={MemberDashboard} />
           <Route path="/member-dashboard" component={MemberDashboard} />
-          {/* Member leadership can access these */}
+          {/* Member leadership can access these pages */}
           {memberSession?.member && ['chairman', 'secretary', 'finance'].includes(memberSession.member.groupRole) && (
             <>
               <Route path="/members" component={Members} />
@@ -87,10 +86,12 @@ function Router() {
               <Route path="/loan-submission" component={LoanSubmissionPage} />
             </>
           )}
+          {/* Default route for members */}
+          <Route path="/" component={MemberDashboard} />
         </>
       )}
       
-      {/* Field staff routes - only for field staff */}
+      {/* FIELD STAFF ROUTES - Second Priority */}
       {isFieldStaff && (
         <>
           <Route path="/field-dashboard" component={FieldDashboard} />
@@ -98,10 +99,12 @@ function Router() {
           <Route path="/submit-savings" component={SubmitSavingsPage} />
           <Route path="/loan-payments" component={LoanPaymentsPage} />
           <Route path="/loan-submission" component={LoanSubmissionPage} />
+          {/* Default route for field staff */}
+          <Route path="/" component={FieldDashboard} />
         </>
       )}
       
-      {/* Admin routes - only for administrators */}
+      {/* ADMIN ROUTES - Lowest Priority */}
       {isAdmin && (
         <>
           <Route path="/groups" component={Groups} />
@@ -116,17 +119,13 @@ function Router() {
           <Route path="/submit-savings" component={SubmitSavingsPage} />
           <Route path="/loan-payments" component={LoanPaymentsPage} />
           <Route path="/loan-submission" component={LoanSubmissionPage} />
+          {/* Default route for admin */}
+          <Route path="/" component={Dashboard} />
         </>
       )}
       
-      {/* Default home routes based on role */}
-      <Route path="/" component={() => {
-        // Prioritize member sessions first to prevent members seeing admin dashboard
-        if (memberSession?.member) return <MemberDashboard />;
-        if (isAdmin) return <Dashboard />;
-        if (isFieldStaff) return <FieldDashboard />;
-        return <Login />;
-      }} />
+      {/* Fallback for unauthenticated */}
+      <Route path="/" component={Login} />
       
       {/* 404 Not Found */}
       <Route component={NotFound} />
