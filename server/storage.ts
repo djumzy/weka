@@ -567,10 +567,28 @@ export class DatabaseStorage implements IStorage {
       .where(eq(groups.isActive, true))
       .groupBy(groups.id);
 
-    if (groupId) query = query.where(eq(groups.id, groupId));
-    if (location) query = query.where(eq(groups.location, location));
-    if (dateFrom) query = query.where(gte(groups.registrationDate, dateFrom.toISOString().split('T')[0]));
-    if (dateTo) query = query.where(lte(groups.registrationDate, dateTo.toISOString().split('T')[0]));
+    // Apply filters
+    let conditions = [eq(groups.isActive, true)];
+    if (groupId) conditions.push(eq(groups.id, groupId));
+    if (location) conditions.push(eq(groups.location, location));
+    if (dateFrom) conditions.push(gte(groups.registrationDate, dateFrom.toISOString().split('T')[0]));
+    if (dateTo) conditions.push(lte(groups.registrationDate, dateTo.toISOString().split('T')[0]));
+    
+    query = db.select({
+      id: groups.id,
+      name: groups.name,
+      location: groups.location,
+      registrationNumber: groups.registrationNumber,
+      memberCount: count(members.id),
+      totalSavings: sum(members.savingsBalance),
+      availableCash: groups.availableCash,
+      cycleMonths: groups.cycleMonths,
+      interestRate: groups.interestRate,
+      registrationDate: groups.registrationDate,
+    }).from(groups)
+      .leftJoin(members, eq(groups.id, members.groupId))
+      .where(and(...conditions))
+      .groupBy(groups.id);
 
     return await query;
   }
@@ -591,10 +609,27 @@ export class DatabaseStorage implements IStorage {
       .leftJoin(groups, eq(members.groupId, groups.id))
       .where(eq(members.isActive, true));
 
-    if (groupId) query = query.where(eq(members.groupId, groupId));
-    if (gender) query = query.where(eq(members.gender, gender));
-    if (dateFrom) query = query.where(gte(members.joinDate, dateFrom.toISOString().split('T')[0]));
-    if (dateTo) query = query.where(lte(members.joinDate, dateTo.toISOString().split('T')[0]));
+    // Apply filters
+    let memberConditions = [eq(members.isActive, true)];
+    if (groupId) memberConditions.push(eq(members.groupId, groupId));
+    if (gender) memberConditions.push(eq(members.gender, gender));
+    if (dateFrom) memberConditions.push(gte(members.joinDate, dateFrom.toISOString().split('T')[0]));
+    if (dateTo) memberConditions.push(lte(members.joinDate, dateTo.toISOString().split('T')[0]));
+    
+    query = db.select({
+      id: members.id,
+      firstName: members.firstName,
+      lastName: members.lastName,
+      gender: members.gender,
+      phone: members.phone,
+      groupName: groups.name,
+      groupLocation: groups.location,
+      savingsBalance: members.savingsBalance,
+      joinDate: members.joinDate,
+      isActive: members.isActive,
+    }).from(members)
+      .leftJoin(groups, eq(members.groupId, groups.id))
+      .where(and(...memberConditions));
 
     return await query;
   }
@@ -610,9 +645,24 @@ export class DatabaseStorage implements IStorage {
       .leftJoin(groups, eq(transactions.groupId, groups.id))
       .groupBy(transactions.groupId, groups.name, transactions.type);
 
-    if (groupId) query = query.where(eq(transactions.groupId, groupId));
-    if (dateFrom) query = query.where(gte(transactions.transactionDate, dateFrom));
-    if (dateTo) query = query.where(lte(transactions.transactionDate, dateTo));
+    // Apply filters
+    let transactionConditions = [];
+    if (groupId) transactionConditions.push(eq(transactions.groupId, groupId));
+    if (dateFrom) transactionConditions.push(gte(transactions.transactionDate, dateFrom));
+    if (dateTo) transactionConditions.push(lte(transactions.transactionDate, dateTo));
+    
+    if (transactionConditions.length > 0) {
+      query = db.select({
+        groupId: transactions.groupId,
+        groupName: groups.name,
+        transactionType: transactions.type,
+        totalAmount: sum(transactions.amount),
+        transactionCount: count(transactions.id),
+      }).from(transactions)
+        .leftJoin(groups, eq(transactions.groupId, groups.id))
+        .where(and(...transactionConditions))
+        .groupBy(transactions.groupId, groups.name, transactions.type);
+    }
 
     return await query;
   }
