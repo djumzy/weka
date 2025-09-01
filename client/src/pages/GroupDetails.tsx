@@ -9,7 +9,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { Link } from "wouter";
 import { formatCurrency } from "@/lib/utils";
 import { NewMemberModal } from "@/components/modals/NewMemberModal";
+import { EditGroupModal } from "@/components/modals/EditGroupModal";
 import { MemberDetailsModal } from "@/components/MemberDetailsModal";
+import type { Group } from "@shared/schema";
 
 export default function GroupDetails() {
   const { groupId } = useParams<{ groupId: string }>();
@@ -17,9 +19,10 @@ export default function GroupDetails() {
   const [isNewMemberModalOpen, setIsNewMemberModalOpen] = useState(false);
   const [selectedMember, setSelectedMember] = useState(null);
   const [isMemberDetailsOpen, setIsMemberDetailsOpen] = useState(false);
+  const [isEditGroupModalOpen, setIsEditGroupModalOpen] = useState(false);
 
   // Fetch group details
-  const { data: group, isLoading: groupLoading } = useQuery({
+  const { data: group, isLoading: groupLoading } = useQuery<Group>({
     queryKey: ["/api/groups", groupId],
   });
 
@@ -115,7 +118,11 @@ export default function GroupDetails() {
                   <Plus className="w-4 h-4 mr-2" />
                   Add Member
                 </Button>
-                <Button variant="outline">
+                <Button 
+                  variant="outline"
+                  onClick={() => setIsEditGroupModalOpen(true)}
+                  data-testid="button-edit-group"
+                >
                   <Edit className="w-4 h-4 mr-2" />
                   Edit Group
                 </Button>
@@ -279,6 +286,15 @@ export default function GroupDetails() {
           setSelectedMember(null);
         }}
       />
+
+      {/* Edit Group Modal */}
+      {group && (
+        <EditGroupModal
+          open={isEditGroupModalOpen}
+          onOpenChange={setIsEditGroupModalOpen}
+          group={group}
+        />
+      )}
     </div>
   );
 }
