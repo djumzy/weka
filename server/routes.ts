@@ -250,49 +250,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Invalid phone number or PIN" });
       }
       
-      // Create or find user record for member to maintain audit trail
-      let memberUser;
-      try {
-        // Try to find existing user record by member ID in userId field
-        memberUser = await storage.getUserByPhoneOrUserId(`MB${member.id.slice(-6)}`);
-        if (!memberUser) {
-          console.log('Creating user record for member:', member.firstName, member.lastName);
-          // Create user record for member - only if doesn't exist
-          memberUser = await storage.createUser({
-            userId: `MB${member.id.slice(-6)}`, // MB prefix for member users
-            firstName: member.firstName,
-            lastName: member.lastName,
-            phone: member.phone || phone, // Use login phone if member.phone is empty
-            pin: member.pin, // Use same PIN
-            role: 'member',
-            isActive: member.isActive
-          });
-          console.log('Created user record:', memberUser.id, memberUser.userId);
-        } else {
-          console.log('Found existing user record for member:', memberUser.userId);
-        }
-      } catch (e) {
-        console.error('Failed to create member user record:', e);
-        // Try to find existing record first before fallback
-        try {
-          memberUser = await storage.getUserByPhoneOrUserId(`MB${member.id.slice(-6)}`);
-          console.log('Found existing user during error recovery:', memberUser?.userId);
-        } catch (findError) {
-          console.log('Using admin fallback for audit trail');
-          // Use admin user as fallback for audit trail
-          memberUser = { id: '78d710c9-48fb-4e3b-8caa-d9f14fc7a57e' };
-        }
-      }
-      
-      // Set session for member authentication - DO NOT set userId to avoid staff auth conflict
+      // Set session for member authentication - DO NOT create user records to avoid conflicts
       (req.session as any).memberId = member.id;
       (req.session as any).userRole = 'member';
-      // Store audit user ID separately to avoid auth conflicts
-      (req.session as any).auditUserId = memberUser.id;
       
       console.log('Member session created:', {
         memberId: member.id,
-        auditUserId: memberUser.id,
         userRole: 'member'
       });
       
