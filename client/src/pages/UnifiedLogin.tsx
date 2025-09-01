@@ -62,9 +62,10 @@ export default function UnifiedLogin() {
       return response.json();
     },
     onSuccess: (data) => {
-      // Handle different response formats
+      // Handle different response formats - use unified auth system
       if (data.userType === 'member') {
-        localStorage.setItem('memberSession', JSON.stringify(data));
+        // Don't store in localStorage - use session system only
+        queryClient.setQueryData(["/api/auth/user"], { userType: 'member', member: data.member, groupStats: data.groupStats });
         toast({
           title: "Login successful",
           description: `Welcome back, ${data.member.firstName}!`,
@@ -72,7 +73,7 @@ export default function UnifiedLogin() {
         setLocation(`/member-dashboard/${data.member.id}`);
       } else if (data.userType === 'staff') {
         // New staff login response format
-        localStorage.setItem('staffSession', JSON.stringify(data));
+        queryClient.setQueryData(["/api/auth/user"], { userType: 'staff', user: data.user });
         toast({
           title: "Login successful", 
           description: `Welcome back, ${data.user.firstName}!`,
@@ -88,6 +89,7 @@ export default function UnifiedLogin() {
           title: "Login successful", 
           description: `Welcome back, ${data.firstName}!`,
         });
+        queryClient.setQueryData(["/api/auth/user"], data);
         if (data.role === 'admin') {
           setLocation('/');
         } else {

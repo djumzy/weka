@@ -200,10 +200,23 @@ export function setupAuth(app: Express) {
         if (!member || !member.isActive) {
           return res.status(401).json({ message: "Unauthorized" });
         }
-        // Return member data (without PIN) with role field for unified auth
+        
+        // Get group stats and group info for the member like member-login does
+        const groupStats = await storage.getGroupStats(member.groupId);
+        const group = await storage.getGroup(member.groupId);
+        
+        // Return member data (without PIN) with role field and group data for unified auth
         const { pin: _, ...memberWithoutPin } = member;
-        const memberWithRole = { ...memberWithoutPin, role: 'member' };
-        res.json({ userType: 'member', member: memberWithRole });
+        const memberWithRole = { 
+          ...memberWithoutPin, 
+          role: 'member',
+          groupName: group?.name || 'Unknown Group'
+        };
+        res.json({ 
+          userType: 'member', 
+          member: memberWithRole,
+          groupStats: groupStats || {}
+        });
         return;
       }
       
