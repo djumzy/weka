@@ -167,10 +167,10 @@ export default function LoanSubmissionPage() {
     const loanSubmissionData = {
       groupId: autoGroupId, // AUTO-DETECTED from selected member
       memberId: selectedMember, // Selected member ID
-      amount: numericAmount.toString(),
+      amount: numericAmount.toString(), // string for decimal field
       purpose: loanPurpose || '',
-      termMonths: numericTermMonths,
-      interestRate: autoInterestRate.toString(), // AUTO-DETECTED from group agreement
+      termMonths: numericTermMonths, // number as expected by schema
+      interestRate: autoInterestRate.toString(), // string for decimal field
       status: 'approved' // AUTO-APPROVED
     };
     
