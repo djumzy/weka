@@ -6,9 +6,10 @@ import { EditGroupModal } from "@/components/modals/EditGroupModal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Search, Edit, Trash2, MapPin, DollarSign, Users } from "lucide-react";
+import { Plus, Search, Edit, Trash2, MapPin, DollarSign, Users, Ban, CheckCircle, MoreVertical } from "lucide-react";
 import type { Group } from "@shared/schema";
 
 export default function Groups() {
@@ -69,8 +70,48 @@ export default function Groups() {
     },
   });
 
+  // Deactivate/Activate group mutation
+  const toggleGroupStatusMutation = useMutation({
+    mutationFn: async ({ groupId, isActive }: { groupId: string; isActive: boolean }) => {
+      const response = await fetch(`/api/groups/${groupId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ isActive }),
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to update group status');
+      }
+      return response.json();
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/groups'] });
+      toast({
+        title: "Success",
+        description: `Group ${variables.isActive ? 'activated' : 'deactivated'} successfully`,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update group status",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleDeleteGroup = (group: Group) => {
     deleteGroupMutation.mutate(group.id);
+  };
+
+  const handleToggleGroupStatus = (group: Group) => {
+    toggleGroupStatusMutation.mutate({
+      groupId: group.id,
+      isActive: !group.isActive
+    });
   };
 
   if (isLoading) {
@@ -205,37 +246,75 @@ export default function Groups() {
                       </Button>
                       
                       {isAdmin && (
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
                             <Button
                               variant="outline"
                               size="sm"
-                              className="flex items-center gap-1 text-red-600 hover:text-red-700 hover:bg-red-50"
-                              data-testid={`delete-group-${group.id}`}
+                              className="flex items-center gap-1"
+                              data-testid={`actions-group-${group.id}`}
                             >
-                              <Trash2 className="h-4 w-4" />
-                              Delete
+                              <MoreVertical className="h-4 w-4" />
                             </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Delete Group</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Are you sure you want to delete the group "{group.name}"? 
-                                This action cannot be undone and will permanently remove all group data.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction 
-                                onClick={() => handleDeleteGroup(group)}
-                                className="bg-red-600 hover:bg-red-700"
-                              >
-                                Delete Group
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={() => handleToggleGroupStatus(group)}
+                              className="flex items-center gap-2"
+                              data-testid={`toggle-status-group-${group.id}`}
+                            >
+                              {group.isActive ? (
+                                <>
+                                  <Ban className="h-4 w-4" />
+                                  Deactivate Group
+                                </>
+                              ) : (
+                                <>
+                                  <CheckCircle className="h-4 w-4" />
+                                  Activate Group
+                                </>
+                              )}
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <DropdownMenuItem
+                                  onSelect={(e) => e.preventDefault()}
+                                  className="flex items-center gap-2 text-red-600 focus:text-red-600"
+                                  data-testid={`delete-group-${group.id}`}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                  Delete Permanently
+                                </DropdownMenuItem>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Delete Group Permanently</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Are you sure you want to permanently delete the group "{group.name}"?
+                                    <br /><br />
+                                    <strong>This will delete:</strong>
+                                    <br />• All {stats.memberCount} members in this group
+                                    <br />• All transaction history (${stats.totalSavings.toFixed(2)})
+                                    <br />• All loan records and payments
+                                    <br />• All meeting records
+                                    <br /><br />
+                                    <strong>This action cannot be undone!</strong>
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction 
+                                    onClick={() => handleDeleteGroup(group)}
+                                    className="bg-red-600 hover:bg-red-700"
+                                  >
+                                    Delete Permanently
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       )}
                     </div>
                   </div>

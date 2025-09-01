@@ -210,8 +210,29 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteGroup(id: string): Promise<boolean> {
-    const result = await db.delete(groups).where(eq(groups.id, id));
-    return (result.rowCount ?? 0) > 0;
+    try {
+      // First, delete all members in this group
+      await db.delete(members).where(eq(members.groupId, id));
+      
+      // Delete all transactions for this group
+      await db.delete(transactions).where(eq(transactions.groupId, id));
+      
+      // Delete all loans for this group
+      await db.delete(loans).where(eq(loans.groupId, id));
+      
+      // Delete all meetings for this group
+      await db.delete(meetings).where(eq(meetings.groupId, id));
+      
+      // Delete all cashbox entries for this group
+      await db.delete(cashbox).where(eq(cashbox.groupId, id));
+      
+      // Finally, delete the group itself
+      const result = await db.delete(groups).where(eq(groups.id, id));
+      return (result.rowCount ?? 0) > 0;
+    } catch (error) {
+      console.error('Error deleting group:', error);
+      throw error;
+    }
   }
 
   // Member operations
