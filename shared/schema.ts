@@ -288,8 +288,7 @@ export const insertTransactionSchema = createInsertSchema(transactions).omit({
 
 export const insertLoanSchema = createInsertSchema(loans).omit({
   id: true,
-  createdAt: true,
-  updatedAt: true,
+  applicationDate: true, // Has default value
   approvalDate: true,
   disbursementDate: true,
   dueDate: true,
@@ -298,6 +297,8 @@ export const insertLoanSchema = createInsertSchema(loans).omit({
   monthsOverdue: true,
   lastInterestUpdate: true,
   approvedBy: true,
+  createdAt: true,
+  updatedAt: true,
 });
 
 export const insertMeetingSchema = createInsertSchema(meetings).omit({

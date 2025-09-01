@@ -152,13 +152,18 @@ export default function LoanSubmissionPage() {
       return;
     }
 
+    // Convert string values to proper numeric types for validation
+    const numericAmount = parseFloat(loanAmount);
+    const numericTermMonths = parseInt(repaymentPeriod);
+    const numericInterestRate = parseFloat(selectedGroupData?.interestRate || '10');
+
     submitLoanMutation.mutate({
       groupId: selectedGroup,
       memberId: selectedMember,
-      amount: loanAmount,
+      amount: numericAmount.toString(), // Convert back to string for decimal field
       purpose: loanPurpose,
-      termMonths: parseInt(repaymentPeriod),
-      interestRate: selectedGroupData?.interestRate || '10' // Get from group or default
+      termMonths: numericTermMonths,
+      interestRate: numericInterestRate.toString() // Convert back to string for decimal field
     });
   };
 
