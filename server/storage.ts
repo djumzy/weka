@@ -560,12 +560,20 @@ export class DatabaseStorage implements IStorage {
       const activeLoans = allLoans.filter(loan => loan.status === 'active').length;
       const totalLoansGiven = totalCurrentLoans;
       
-      // Calculate total interest from all loans
-      const totalInterest = allLoans.reduce((total, loan) => {
-        const originalAmount = parseFloat(loan.amount || '0');
-        const totalDue = parseFloat(loan.totalAmountDue || '0');
-        const interestEarned = totalDue - originalAmount;
-        return total + Math.max(0, interestEarned);
+      // Calculate total interest from current loans based on group interest rates
+      // For VSLA systems, calculate monthly interest on outstanding loans
+      const totalInterest = allMembers.reduce((total, member) => {
+        const currentLoanAmount = parseFloat(member.currentLoan || '0');
+        if (currentLoanAmount > 0) {
+          // Find the member's group to get interest rate
+          const memberGroup = allGroups.find(g => g.id === member.groupId);
+          const groupInterestRate = memberGroup ? parseFloat(memberGroup.interestRate || '2.0') : 2.0;
+          
+          // Calculate monthly interest (rate is monthly percentage)
+          const monthlyInterest = currentLoanAmount * (groupInterestRate / 100);
+          return total + monthlyInterest;
+        }
+        return total;
       }, 0);
 
       return {
