@@ -252,65 +252,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Invalid phone number or PIN" });
       }
       
-      // Create or find user record for member to maintain audit trail
-      let memberUser;
-      try {
-        // Try to find existing user record by member ID in userId field
-        const userIdToCheck = `MB${member.id.slice(-6)}`;
-        memberUser = await storage.getUserByPhoneOrUserId(userIdToCheck);
-        
-        if (!memberUser) {
-          // Double check by searching all users to avoid duplicates
-          const allUsers = await storage.getUsers();
-          const existingUser = allUsers.find(u => u.userId === userIdToCheck);
-          
-          if (!existingUser) {
-            console.log('Creating user record for member:', member.firstName, member.lastName);
-            // Create user record for member
-            memberUser = await storage.createUser({
-              userId: userIdToCheck, // MB prefix for member users
-              firstName: member.firstName,
-              lastName: member.lastName,
-              phone: member.phone || phone, // Use login phone if member.phone is empty
-              pin: member.pin, // Use same PIN
-              role: 'member',
-              isActive: member.isActive
-            });
-            console.log('Created user record:', memberUser.id, memberUser.userId);
-          } else {
-            console.log('Found existing user record:', existingUser.id, existingUser.userId);
-            memberUser = existingUser;
-          }
-        } else {
-          console.log('Found user record via getUserByPhoneOrUserId:', memberUser.id, memberUser.userId);
-        }
-      } catch (e) {
-        console.error('Failed to create member user record:', e);
-        // Try to find by userId one more time before falling back
-        try {
-          const allUsers = await storage.getUsers();
-          const existingUser = allUsers.find(u => u.userId === `MB${member.id.slice(-6)}`);
-          if (existingUser) {
-            memberUser = existingUser;
-            console.log('Found existing user in fallback:', existingUser.id, existingUser.userId);
-          } else {
-            // Use admin user as final fallback for audit trail
-            memberUser = { id: '78d710c9-48fb-4e3b-8caa-d9f14fc7a57e' };
-          }
-        } catch (fallbackError) {
-          // Use admin user as final fallback for audit trail
-          memberUser = { id: '78d710c9-48fb-4e3b-8caa-d9f14fc7a57e' };
-        }
-      }
-      
-      // Set session for member authentication
+      // Members do NOT need user records - they exist only in members table
+      // Set session for member authentication using member data directly
       (req.session as any).memberId = member.id;
-      (req.session as any).userId = memberUser.id; // Store user ID for audit trail
+      (req.session as any).userId = member.id; // Use member ID for audit trail
       (req.session as any).userRole = 'member';
       
       console.log('Member session created:', {
         memberId: member.id,
-        userId: memberUser.id,
+        userId: member.id,
         userRole: 'member'
       });
       
