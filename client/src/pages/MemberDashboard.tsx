@@ -65,59 +65,64 @@ interface MemberSession {
 export default function MemberDashboard() {
   const { memberId } = useParams<{ memberId: string }>();
   const [, setLocation] = useLocation();
+  const [memberSession, setMemberSession] = useState<MemberSession | null>(null);
 
-  // Use unified auth system instead of separate member-session endpoint
-  const { data: authData, isLoading: authLoading, error: authError } = useQuery({
-    queryKey: ["/api/auth/user"],
-    retry: false,
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
-    refetchInterval: 10000, // Refresh every 10 seconds for financial data
-    staleTime: 0,
-  });
-
-  // Function to load fresh session data  
+  // Function to load fresh session data
   const loadFreshSessionData = () => {
-    console.log('Refreshing auth data...');
-    queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+    console.log('Fetching fresh data from database...');
+    fetch('/api/member-session', { 
+      cache: 'no-cache',
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
+    })
+      .then(response => {
+        if (response.ok) {
+          return response.json();
+        }
+        throw new Error('No session found');
+      })
+      .then(session => {
+        console.log('FRESH API DATA - currentLoan:', session.member.currentLoan);
+        console.log('FULL MEMBER DATA:', session.member);
+        
+        // FORCE CLEAR OLD CACHE BEFORE SETTING NEW DATA
+        localStorage.removeItem('memberSession');
+        
+        // Set fresh data from database
+        setMemberSession(session);
+        localStorage.setItem('memberSession', JSON.stringify(session));
+        console.log('Updated localStorage with fresh data');
+      })
+      .catch(error => {
+        console.log('Member session not available:', error.message);
+        // Only redirect if no cached session and we're not already on login
+        const cachedSession = localStorage.getItem('memberSession');
+        if (!cachedSession && !window.location.pathname.includes('/login')) {
+          setTimeout(() => setLocation('/login'), 100);
+        }
+      });
   };
 
-  // Handle auth errors
+  // Load member session from API to get fresh data
   useEffect(() => {
-    if (authError || (!authLoading && !authData)) {
-      console.log('No auth data, redirecting to login...');
-      setLocation('/login');
-    }
-  }, [authError, authLoading, authData, setLocation]);
+    // CRITICAL: Always get fresh data from database, never trust cache for financial data
+    console.log('Loading fresh member data from database...');
+    loadFreshSessionData();
+  }, [setLocation]);
+  
+  // Refresh data every 10 seconds to ensure accuracy
+  useEffect(() => {
+    const interval = setInterval(() => {
+      console.log('Auto-refreshing member data...');
+      loadFreshSessionData();
+    }, 10000);
+    return () => clearInterval(interval);
+  }, []);
 
-  // Early return if loading or no auth
-  if (authLoading) {
-    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
-  }
-
-  if (!authData || authData.userType !== 'member') {
-    return <div className="flex items-center justify-center min-h-screen">Redirecting...</div>;
-  }
-
-  // Create member session from auth data for compatibility with existing code
-  const memberSession: MemberSession = {
-    member: authData.member,
-    groupStats: authData.groupStats || {
-      totalMembers: 0,
-      totalSavings: 0,
-      totalWelfare: 0,
-      totalShares: 0,
-      shareValue: 0,
-      totalCashInBox: 0,
-      totalLoansOutstanding: 0,
-      groupWelfareAmount: 0,
-      interestRate: 0,
-      totalInterest: 0,
-      totalOriginalLoans: 0
-    }
-  };
-
-  // Listen for manual refresh
+  // Listen for member data updates and manual refresh
   useEffect(() => {
     const handleDataUpdate = () => {
       console.log('Manual refresh triggered');

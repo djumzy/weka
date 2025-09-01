@@ -6,12 +6,6 @@ import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AdminSidebar } from "@/components/AdminSidebar";
 import { Calculator, DollarSign, Percent, Calendar } from "lucide-react";
-import { 
-  calculateLoanInterest, 
-  calculateLoanTotalDue, 
-  calculateMonthlyPayment,
-  generatePaymentSchedule 
-} from "@/lib/calculations";
 
 interface LoanCalculation {
   monthlyPayment: number;
@@ -34,18 +28,38 @@ export default function LoanCalculator() {
 
   const calculateLoan = () => {
     const principal = parseFloat(loanAmount);
-    const monthlyInterestRate = parseFloat(interestRate); // Use monthly rate as entered
+    const rate = parseFloat(interestRate) / 100 / 12; // Monthly interest rate
     const months = parseInt(termMonths);
 
-    if (!principal || !monthlyInterestRate || !months) {
+    if (!principal || !rate || !months) {
       return;
     }
 
-    // Use standardized calculation functions
-    const totalInterest = calculateLoanInterest(principal, monthlyInterestRate, months, false);
-    const totalAmount = calculateLoanTotalDue(principal, monthlyInterestRate, months, false);
-    const monthlyPayment = calculateMonthlyPayment(principal, monthlyInterestRate, months, false);
-    const paymentSchedule = generatePaymentSchedule(principal, monthlyInterestRate, months, false);
+    // Calculate monthly payment using loan formula
+    const monthlyPayment = (principal * rate * Math.pow(1 + rate, months)) / 
+                          (Math.pow(1 + rate, months) - 1);
+
+    // Calculate total amount and interest
+    const totalAmount = monthlyPayment * months;
+    const totalInterest = totalAmount - principal;
+
+    // Generate payment schedule
+    let balance = principal;
+    const paymentSchedule = [];
+
+    for (let month = 1; month <= months; month++) {
+      const interestPayment = balance * rate;
+      const principalPayment = monthlyPayment - interestPayment;
+      balance -= principalPayment;
+
+      paymentSchedule.push({
+        month,
+        payment: monthlyPayment,
+        principal: principalPayment,
+        interest: interestPayment,
+        balance: Math.max(0, balance),
+      });
+    }
 
     setCalculation({
       monthlyPayment,

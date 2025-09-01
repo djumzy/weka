@@ -29,26 +29,10 @@ async function hashPin(pin: string): Promise<string> {
 
 // Compare provided PIN with stored hash
 export async function comparePin(supplied: string, stored: string): Promise<boolean> {
-  try {
-    // Handle both hashed and plain text PINs for backward compatibility
-    if (!stored.includes(".")) {
-      // Plain text PIN - direct comparison
-      return supplied === stored;
-    }
-    
-    const [hashed, salt] = stored.split(".");
-    if (!hashed || !salt) {
-      console.error("Invalid PIN format - missing hash or salt");
-      return false;
-    }
-    
-    const hashedBuf = Buffer.from(hashed, "hex");
-    const suppliedBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
-    return timingSafeEqual(hashedBuf, suppliedBuf);
-  } catch (error) {
-    console.error("PIN comparison error:", error);
-    return false;
-  }
+  const [hashed, salt] = stored.split(".");
+  const hashedBuf = Buffer.from(hashed, "hex");
+  const suppliedBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
+  return timingSafeEqual(hashedBuf, suppliedBuf);
 }
 
 // Generate unique User ID in TDXXXXXX format
@@ -200,23 +184,9 @@ export function setupAuth(app: Express) {
         if (!member || !member.isActive) {
           return res.status(401).json({ message: "Unauthorized" });
         }
-        
-        // Get group stats and group info for the member like member-login does
-        const groupStats = await storage.getGroupStats(member.groupId);
-        const group = await storage.getGroup(member.groupId);
-        
-        // Return member data (without PIN) with role field and group data for unified auth
+        // Return member data (without PIN)
         const { pin: _, ...memberWithoutPin } = member;
-        const memberWithRole = { 
-          ...memberWithoutPin, 
-          role: 'member',
-          groupName: group?.name || 'Unknown Group'
-        };
-        res.json({ 
-          userType: 'member', 
-          member: memberWithRole,
-          groupStats: groupStats || {}
-        });
+        res.json({ userType: 'member', member: memberWithoutPin });
         return;
       }
       

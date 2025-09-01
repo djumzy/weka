@@ -310,16 +310,10 @@ export const insertUserSchema = createInsertSchema(users).omit({
   lastLogin: true,
 });
 
-// Login schema - flexible PIN length for different user types
+// Login schema
 export const loginSchema = z.object({
   phoneOrUserId: z.string().min(1, "Phone number or User ID is required"),
-  pin: z.string().min(4, "PIN must be at least 4 digits").max(6, "PIN must be at most 6 digits"),
-});
-
-// Member login schema - specific for members
-export const memberLoginSchema = z.object({
-  phone: z.string().min(1, "Phone number is required"),
-  pin: z.string().min(4, "PIN must be at least 4 digits"),
+  pin: z.string().length(6, "PIN must be 6 digits"),
 });
 
 // Types

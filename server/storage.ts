@@ -24,7 +24,6 @@ import {
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, count, sum, gte, lte, sql } from "drizzle-orm";
-import { calculateGroupFinancials, calculateMemberShares, calculateLoanTotalDue, calculateLoanInterest } from "./calculations";
 
 export interface IStorage {
   // User operations
@@ -80,22 +79,6 @@ export interface IStorage {
   getMemberByPhone(phone: string): Promise<Member | undefined>;
   getGroupMembers(groupId: string): Promise<Member[]>;
   updateMemberShares(id: string, shares: number): Promise<void>;
-  
-  // Validate and fix calculations using standardized formulas
-  validateAndFixGroupCalculations(groupId: string): Promise<{
-    corrections: string[];
-    summary: {
-      membersFixed: number;
-      totalMembersChecked: number;
-      groupFinancials: any;
-    };
-  }>;
-  
-  // Fix existing loans to have proper totalAmountDue calculations
-  fixExistingLoanCalculations(): Promise<{
-    loansFixed: number;
-    corrections: string[];
-  }>;
 
   // Enhanced transaction operations
   getGroupTransactions(groupId: string): Promise<Transaction[]>;
@@ -281,28 +264,33 @@ export class DatabaseStorage implements IStorage {
   async createTransaction(transaction: InsertTransaction): Promise<Transaction> {
     const [newTransaction] = await db.insert(transactions).values(transaction).returning();
     
-    // Update member's savings balance and shares using standardized calculations
+    // Update member's savings balance and shares
     const member = await this.getMember(transaction.memberId);
     if (member) {
       const group = await this.getGroup(member.groupId);
-      if (group) {
-        let newBalance = parseFloat(member.savingsBalance);
-        
-        if (transaction.type === 'deposit') {
-          newBalance += parseFloat(transaction.amount);
-        } else if (transaction.type === 'withdrawal') {
-          newBalance -= parseFloat(transaction.amount);
+      let newBalance = parseFloat(member.savingsBalance);
+      let newShares = member.totalShares;
+      
+      if (transaction.type === 'deposit') {
+        newBalance += parseFloat(transaction.amount);
+        // Calculate shares based on group's saving per share value
+        if (group && group.savingPerShare) {
+          const shareValue = parseFloat(group.savingPerShare);
+          newShares = Math.floor(newBalance / shareValue);
         }
-        
-        // Use standardized formula for share calculation
-        const shareValue = parseFloat(group.savingPerShare || '0');
-        const newShares = calculateMemberShares(newBalance, shareValue);
-        
-        await this.updateMember(transaction.memberId, { 
-          savingsBalance: newBalance.toFixed(2),
-          totalShares: newShares
-        });
+      } else if (transaction.type === 'withdrawal') {
+        newBalance -= parseFloat(transaction.amount);
+        // Recalculate shares after withdrawal
+        if (group && group.savingPerShare) {
+          const shareValue = parseFloat(group.savingPerShare);
+          newShares = Math.floor(newBalance / shareValue);
+        }
       }
+      
+      await this.updateMember(transaction.memberId, { 
+        savingsBalance: newBalance.toFixed(2),
+        totalShares: newShares
+      });
     }
 
     return newTransaction;
@@ -437,7 +425,7 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(cashbox.recordedAt));
   }
 
-  // Group-specific statistics for members - now using standardized calculations
+  // Group-specific statistics for members
   async getGroupStats(groupId: string): Promise<{
     totalMembers: number;
     totalSavings: number;
@@ -450,35 +438,50 @@ export class DatabaseStorage implements IStorage {
     interestRate: number;
     totalInterest: number;
     totalOriginalLoans: number;
-    availableLoanFunds: number;
   }> {
     const group = await this.getGroup(groupId);
     if (!group) throw new Error('Group not found');
     
-    // Get all active members for this group
-    const groupMembers = await db.select().from(members)
+
+    const [memberCount] = await db.select({ count: count() }).from(members)
       .where(and(eq(members.groupId, groupId), eq(members.isActive, true)));
     
-    // Get all loans for this group
-    const groupLoans = await db.select().from(loans)
-      .where(eq(loans.groupId, groupId));
+    const [savingsSum] = await db.select({ sum: sum(members.savingsBalance) }).from(members)
+      .where(and(eq(members.groupId, groupId), eq(members.isActive, true)));
     
-    // Use standardized calculation system
-    const financials = calculateGroupFinancials(group, groupMembers, groupLoans);
+    const [welfareSum] = await db.select({ sum: sum(members.welfareBalance) }).from(members)
+      .where(and(eq(members.groupId, groupId), eq(members.isActive, true)));
+    
+    const [sharesSum] = await db.select({ sum: sum(members.totalShares) }).from(members)
+      .where(and(eq(members.groupId, groupId), eq(members.isActive, true)));
+    
+    const [loansSum] = await db.select({ sum: sum(members.currentLoan) }).from(members)
+      .where(and(eq(members.groupId, groupId), eq(members.isActive, true)));
+
+    const totalSavings = parseFloat(savingsSum.sum || '0');
+    const totalLoansOutstanding = parseFloat(loansSum.sum || '0');
+    const shareValue = parseFloat(group.savingPerShare || '0');
+    const interestRate = parseFloat(group.interestRate || '0');
+    
+    
+    // Calculate total original loans and total interest for this group
+    // Since currentLoan = originalLoan + interest, we need to separate them
+    // For now, we'll calculate based on the interest rate
+    const totalOriginalLoans = totalLoansOutstanding / (1 + (interestRate / 100));
+    const totalInterest = totalLoansOutstanding - totalOriginalLoans;
     
     return {
-      totalMembers: financials.totalMembers,
-      totalSavings: financials.totalSavings,
-      totalWelfare: financials.totalWelfare,
-      totalShares: financials.totalShares,
-      shareValue: financials.shareValue,
-      totalCashInBox: financials.totalCashInBox,
-      totalLoansOutstanding: financials.totalLoansOutstanding,
-      groupWelfareAmount: financials.groupWelfareAmount,
-      interestRate: financials.interestRate,
-      totalInterest: financials.totalInterestEarned,
-      totalOriginalLoans: financials.totalOriginalLoans,
-      availableLoanFunds: financials.availableLoanFunds,
+      totalMembers: memberCount.count,
+      totalSavings,
+      totalWelfare: parseFloat(welfareSum.sum || '0'),
+      totalShares: parseInt(sharesSum.sum || '0'),
+      shareValue,
+      totalCashInBox: totalSavings - totalOriginalLoans, // Use original loan amount for cash calculation
+      totalLoansOutstanding,
+      groupWelfareAmount: parseFloat(group.welfareAmount || '0'),
+      interestRate,
+      totalInterest,
+      totalOriginalLoans,
     };
   }
 
@@ -500,109 +503,6 @@ export class DatabaseStorage implements IStorage {
         updatedAt: new Date()
       })
       .where(eq(members.id, memberId));
-  }
-
-  // Validate and fix calculations for a group using standardized formulas
-  async validateAndFixGroupCalculations(groupId: string): Promise<{
-    corrections: string[];
-    summary: {
-      membersFixed: number;
-      totalMembersChecked: number;
-      groupFinancials: any;
-    };
-  }> {
-    const corrections: string[] = [];
-    
-    const group = await this.getGroup(groupId);
-    if (!group) throw new Error('Group not found');
-    
-    // Get all active members for this group
-    const groupMembers = await db.select().from(members)
-      .where(and(eq(members.groupId, groupId), eq(members.isActive, true)));
-    
-    let membersFixed = 0;
-    
-    // Check and fix each member's share calculation
-    for (const member of groupMembers) {
-      const savingsBalance = parseFloat(member.savingsBalance || '0');
-      const shareValue = parseFloat(group.savingPerShare || '0');
-      const correctShares = calculateMemberShares(savingsBalance, shareValue);
-      
-      if (member.totalShares !== correctShares) {
-        await this.updateMember(member.id, { totalShares: correctShares });
-        corrections.push(
-          `Fixed ${member.firstName} ${member.lastName}: ${member.totalShares} → ${correctShares} shares`
-        );
-        membersFixed++;
-      }
-    }
-    
-    // Recalculate group financials using standardized system
-    const updatedMembers = await db.select().from(members)
-      .where(and(eq(members.groupId, groupId), eq(members.isActive, true)));
-    const groupLoans = await db.select().from(loans).where(eq(loans.groupId, groupId));
-    const groupFinancials = calculateGroupFinancials(group, updatedMembers, groupLoans);
-    
-    if (corrections.length === 0) {
-      corrections.push("All calculations are already correct using standardized formulas");
-    }
-    
-    return {
-      corrections,
-      summary: {
-        membersFixed,
-        totalMembersChecked: groupMembers.length,
-        groupFinancials: {
-          totalSavings: groupFinancials.totalSavings,
-          totalShares: groupFinancials.totalShares,
-          cashInBox: groupFinancials.totalCashInBox,
-          loansOutstanding: groupFinancials.totalLoansOutstanding,
-          shareValue: groupFinancials.shareValue
-        }
-      }
-    };
-  }
-
-  // Fix existing loans to have proper totalAmountDue calculations
-  async fixExistingLoanCalculations(): Promise<{
-    loansFixed: number;
-    corrections: string[];
-  }> {
-    const corrections: string[] = [];
-    let loansFixed = 0;
-    
-    // Get all loans
-    const allLoans = await db.select().from(loans);
-    
-    for (const loan of allLoans) {
-      // Skip loans that already have totalAmountDue
-      if (loan.totalAmountDue) continue;
-      
-      // Get the group for this loan to get interest rate
-      const group = await this.getGroup(loan.groupId);
-      if (!group) continue;
-      
-      const principal = parseFloat(loan.amount || '0');
-      const monthlyInterestRate = parseFloat(group.interestRate || '0');
-      const months = parseInt(loan.termMonths?.toString() || '1');
-      
-      // Calculate using standardized formula
-      const totalDue = calculateLoanTotalDue(principal, monthlyInterestRate, months, false);
-      
-      // Update the loan with calculated totalAmountDue
-      await this.updateLoan(loan.id, {
-        totalAmountDue: totalDue.toString(),
-        remainingBalance: totalDue.toString()
-      });
-      
-      corrections.push(`Fixed loan ${loan.id}: Added totalAmountDue = ${totalDue.toFixed(2)}`);
-      loansFixed++;
-    }
-    
-    return {
-      loansFixed,
-      corrections: corrections.length > 0 ? corrections : ["All loans already have proper calculations"]
-    };
   }
 
   // Enhanced member and transaction methods for dashboard
@@ -660,52 +560,13 @@ export class DatabaseStorage implements IStorage {
       const activeLoans = allLoans.filter(loan => loan.status === 'active').length;
       const totalLoansGiven = totalCurrentLoans;
       
-      // Calculate total interest from loans in the database AND current member loans
-      let totalInterest = 0;
-      
-      // Interest from formal loan records
-      totalInterest += allLoans.reduce((total, loan) => {
+      // Calculate total interest from all loans
+      const totalInterest = allLoans.reduce((total, loan) => {
         const originalAmount = parseFloat(loan.amount || '0');
-        
-        if (loan.totalAmountDue) {
-          // Use stored totalAmountDue if available
-          const totalDue = parseFloat(loan.totalAmountDue);
-          const interestEarned = totalDue - originalAmount;
-          return total + Math.max(0, interestEarned);
-        } else {
-          // Calculate interest using standardized formula for loans without totalAmountDue
-          const group = allGroups.find(g => g.id === loan.groupId);
-          if (group) {
-            const monthlyInterestRate = parseFloat(group.interestRate || '0');
-            const months = parseInt(loan.termMonths?.toString() || '1');
-            const interest = calculateLoanInterest(originalAmount, monthlyInterestRate, months, false);
-            return total + interest;
-          }
-          return total;
-        }
+        const totalDue = parseFloat(loan.totalAmountDue || '0');
+        const interestEarned = totalDue - originalAmount;
+        return total + Math.max(0, interestEarned);
       }, 0);
-      
-      // ALWAYS calculate interest from current member loans (since loans table is empty)
-      // Calculate interest from current member loan balances using database values
-      allMembers.forEach(member => {
-        const currentLoan = parseFloat(member.currentLoan || '0');
-        if (currentLoan > 0) {
-          const group = allGroups.find(g => g.id === member.groupId);
-          if (group) {
-            const monthlyInterestRate = parseFloat(group.interestRate || '0');
-            // Use simple interest calculation: Interest = Principal * Rate * Time
-            // Estimate 6-month average term for member loans
-            const avgMonths = 6;
-            // Work backwards: currentLoan includes both principal + interest
-            // currentLoan = principal + (principal * rate/100 * months)
-            // currentLoan = principal * (1 + rate/100 * months)
-            const rateFactor = 1 + ((monthlyInterestRate / 100) * avgMonths);
-            const estimatedPrincipal = currentLoan / rateFactor;
-            const estimatedInterest = currentLoan - estimatedPrincipal;
-            totalInterest += estimatedInterest;
-          }
-        }
-      });
 
       return {
         totalGroups,

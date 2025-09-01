@@ -71,8 +71,7 @@ export default function Login() {
       return response.json();
     },
     onSuccess: (data) => {
-      // Don't store in localStorage - use session system only
-      queryClient.setQueryData(["/api/auth/user"], { userType: 'member', member: data.member });
+      localStorage.setItem('memberSession', JSON.stringify(data));
       toast({
         title: "Login Successful",
         description: `Welcome back, ${data.member.firstName}!`,

@@ -10,12 +10,10 @@ import {
   insertMeetingSchema,
   insertUserSchema,
   insertCashboxSchema,
-  memberLoginSchema,
   type InsertUser
 } from "@shared/schema";
 import { generateUserId, hashPin, comparePin } from "./auth";
 import { z } from "zod";
-import { calculateLoanInterest, calculateLoanTotalDue } from "./calculations";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware - using only internal auth system
@@ -238,7 +236,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Unified authentication endpoints
   app.post('/api/auth/member-login', async (req, res) => {
     try {
-      const { phone, pin } = memberLoginSchema.parse(req.body);
+      const { phone, pin } = req.body;
+      
+      if (!phone || !pin) {
+        return res.status(400).json({ message: "Phone and PIN are required" });
+      }
       
       const member = await storage.getMemberByPhone(phone);
       if (!member) {
@@ -250,12 +252,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Invalid phone number or PIN" });
       }
       
-      // Set session for member authentication - DO NOT create user records to avoid conflicts
+      // Create or find user record for member to maintain audit trail
+      let memberUser;
+      try {
+        // Try to find existing user record by member ID in userId field
+        memberUser = await storage.getUserByPhoneOrUserId(`MB${member.id.slice(-6)}`);
+        if (!memberUser) {
+          console.log('Creating user record for member:', member.firstName, member.lastName);
+          // Create user record for member
+          memberUser = await storage.createUser({
+            userId: `MB${member.id.slice(-6)}`, // MB prefix for member users
+            firstName: member.firstName,
+            lastName: member.lastName,
+            phone: member.phone || phone, // Use login phone if member.phone is empty
+            pin: member.pin, // Use same PIN
+            role: 'member',
+            isActive: member.isActive
+          });
+          console.log('Created user record:', memberUser.id, memberUser.userId);
+        }
+      } catch (e) {
+        console.error('Failed to create member user record:', e);
+        // Use admin user as fallback for audit trail
+        memberUser = { id: '78d710c9-48fb-4e3b-8caa-d9f14fc7a57e' };
+      }
+      
+      // Set session for member authentication
       (req.session as any).memberId = member.id;
+      (req.session as any).userId = memberUser.id; // Store user ID for audit trail
       (req.session as any).userRole = 'member';
       
       console.log('Member session created:', {
         memberId: member.id,
+        userId: memberUser.id,
         userRole: 'member'
       });
       
@@ -535,37 +564,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Validation and correction endpoint for standardized calculations
-  app.post('/api/groups/:id/validate-calculations', isAuthenticated, async (req, res) => {
-    try {
-      const groupId = req.params.id;
-      const result = await storage.validateAndFixGroupCalculations(groupId);
-      res.json({
-        message: "Calculations validated and corrected",
-        corrections: result.corrections,
-        summary: result.summary
-      });
-    } catch (error) {
-      console.error("Error validating calculations:", error);
-      res.status(500).json({ message: "Failed to validate calculations" });
-    }
-  });
-
-  // Fix existing loans to have proper totalAmountDue calculations
-  app.post('/api/fix-loan-calculations', isAuthenticated, async (req, res) => {
-    try {
-      const result = await storage.fixExistingLoanCalculations();
-      res.json({
-        message: "Loan calculations fixed",
-        loansFixed: result.loansFixed,
-        corrections: result.corrections
-      });
-    } catch (error) {
-      console.error("Error fixing loan calculations:", error);
-      res.status(500).json({ message: "Failed to fix loan calculations" });
-    }
-  });
-
   // Member routes with role-based filtering
   app.get('/api/members', isAuthenticated, async (req: any, res) => {
     try {
@@ -829,22 +827,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Group not found" });
       }
       
-      // Calculate interest amount and total repayment using standardized formulas
+      // Calculate interest amount and total repayment
       const principal = parseFloat(loanData.amount);
-      const monthlyInterestRate = parseFloat(group.interestRate || '0');
+      const monthlyInterestRate = parseFloat(group.interestRate || '0') / 100; // Convert percentage
       const months = loanData.repaymentPeriodMonths;
       
-      // Use standardized calculation functions
-      const totalInterest = calculateLoanInterest(principal, monthlyInterestRate, months, false); // Simple interest for VSLA
-      const totalRepayment = calculateLoanTotalDue(principal, monthlyInterestRate, months, false);
+      // Calculate total interest for the loan period
+      const totalInterest = principal * monthlyInterestRate * months;
+      const totalRepayment = principal + totalInterest;
       const monthlyPayment = totalRepayment / months;
       
       // Create loan with calculated values
       const loanWithCalculations = {
         ...loanData,
         status: 'approved' as const, // Auto-approve loans submitted by leadership
-        totalAmountDue: totalRepayment.toString(),
-        remainingBalance: totalRepayment.toString(),
+        interestAmount: totalInterest.toString(),
+        totalAmount: totalRepayment.toString(),
+        monthlyPayment: monthlyPayment.toString()
       };
       
       const loan = await storage.createLoan(loanWithCalculations);
