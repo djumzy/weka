@@ -5,10 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency } from "@/lib/utils";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { FileText, ArrowLeft } from "lucide-react";
+import { DollarSign, ArrowLeft } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useLocation } from "wouter";
 
@@ -106,14 +107,14 @@ export default function LoanSubmissionPage() {
     },
   });
 
-  const selectedMemberData = members.find((m: any) => m.id === selectedMember);
+  const selectedMemberData = (members as any[]).find((m: any) => m.id === selectedMember);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedGroup || !selectedMember || !loanAmount || !loanPurpose || !repaymentPeriod) {
       toast({
         title: "Missing Information",
-        description: "Please fill all fields",
+        description: "Please select group, member, enter loan amount, purpose, and repayment period",
         variant: "destructive",
       });
       return;
@@ -122,10 +123,30 @@ export default function LoanSubmissionPage() {
     const amount = parseFloat(loanAmount);
     const maxLoanAmount = selectedGroupData ? parseFloat(selectedGroupData.maxLoanAmount || '0') : 0;
 
+    if (amount <= 0) {
+      toast({
+        title: "Invalid Amount",
+        description: "Loan amount must be greater than 0",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (maxLoanAmount > 0 && amount > maxLoanAmount) {
       toast({
         title: "Loan Amount Too High",
         description: `Maximum loan amount for this group is ${formatCurrency(maxLoanAmount)}`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check if member already has a loan
+    const existingLoan = parseFloat(selectedMemberData?.currentLoan || '0');
+    if (existingLoan > 0) {
+      toast({
+        title: "Existing Loan Found",
+        description: `This member already has an outstanding loan of ${formatCurrency(existingLoan)}. Please clear existing loan before applying for a new one.`,
         variant: "destructive",
       });
       return;
@@ -144,8 +165,8 @@ export default function LoanSubmissionPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <FileText className="h-6 w-6" />
-          <h1 className="text-2xl font-bold">Submit Loan for Group Members</h1>
+          <DollarSign className="h-6 w-6" />
+          <h1 className="text-2xl font-bold">Submit Loan Application</h1>
         </div>
         <Button 
           variant="outline" 
@@ -159,7 +180,7 @@ export default function LoanSubmissionPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Submit Loan Application</CardTitle>
+          <CardTitle>Submit Loan Application for Group Members</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -185,125 +206,60 @@ export default function LoanSubmissionPage() {
               </div>
             )}
 
-            {/* Show group info for leadership users */}
+            {/* Show read-only group field for leadership users */}
             {isLeadershipRole && memberSession && (
-              <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
-                <div className="text-sm">
-                  <div><span className="font-medium">Group:</span> {memberSession.member?.groupName || 'Unknown Group'}</div>
-                  <div><span className="font-medium">Your Role:</span> {memberSession.member?.groupRole}</div>
+              <div>
+                <Label htmlFor="group-display">Group Information</Label>
+                <div className="p-3 bg-gray-100 dark:bg-gray-800 rounded-md border">
+                  <div className="text-sm">
+                    <div className="font-medium">{memberSession.member?.groupName || 'Unknown Group'}</div>
+                    <div className="text-xs text-gray-500 mt-1">Your Role: {memberSession.member?.groupRole}</div>
+                  </div>
                 </div>
-              </div>
-            )}
-
-            {selectedGroup && selectedGroupData && (
-              <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
-                <div className="text-sm">
-                  <div><span className="font-medium">Group:</span> {selectedGroupData.groupName}</div>
-                  <div><span className="font-medium">Interest Rate:</span> {selectedGroupData.interestRate}% per month</div>
-                  <div><span className="font-medium">Max Loan Amount:</span> {formatCurrency(parseFloat(selectedGroupData.maxLoanAmount || '0'))}</div>
-                </div>
+                <p className="text-xs text-gray-500 mt-1">This group is automatically selected based on your membership.</p>
               </div>
             )}
 
             {selectedGroup && (
               <div className="space-y-4">
-                <Label htmlFor="member-select">Select Member for Loan</Label>
+                <Label htmlFor="member-select">Select Member</Label>
                 
-                {/* Role-based member selection */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                  <div>
-                    <Label className="text-sm font-medium">Chairman</Label>
-                    <Select value={selectedMember} onValueChange={setSelectedMember}>
-                      <SelectTrigger className="h-8 text-xs">
-                        <SelectValue placeholder="Select chairman" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {members.filter((member: any) => member.groupRole === 'chairman').map((member: any) => (
-                          <SelectItem key={member.id} value={member.id}>
-                            {member.firstName} {member.lastName}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div>
-                    <Label className="text-sm font-medium">Secretary</Label>
-                    <Select value={selectedMember} onValueChange={setSelectedMember}>
-                      <SelectTrigger className="h-8 text-xs">
-                        <SelectValue placeholder="Select secretary" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {members.filter((member: any) => member.groupRole === 'secretary').map((member: any) => (
-                          <SelectItem key={member.id} value={member.id}>
-                            {member.firstName} {member.lastName}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div>
-                    <Label className="text-sm font-medium">Finance</Label>
-                    <Select value={selectedMember} onValueChange={setSelectedMember}>
-                      <SelectTrigger className="h-8 text-xs">
-                        <SelectValue placeholder="Select finance" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {members.filter((member: any) => member.groupRole === 'finance').map((member: any) => (
-                          <SelectItem key={member.id} value={member.id}>
-                            {member.firstName} {member.lastName}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div>
-                    <Label className="text-sm font-medium">Members</Label>
-                    <Select value={selectedMember} onValueChange={setSelectedMember}>
-                      <SelectTrigger className="h-8 text-xs">
-                        <SelectValue placeholder="Select member" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {members.filter((member: any) => member.groupRole === 'member').map((member: any) => (
-                          <SelectItem key={member.id} value={member.id}>
-                            {member.firstName} {member.lastName}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
+                {/* Single searchable dropdown for all members */}
+                <Select value={selectedMember} onValueChange={setSelectedMember}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a member from the group" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(members as any[]).map((member: any) => {
+                      const memberName = `${member.firstName || 'N/A'} ${member.lastName || 'N/A'}`; 
+                      const memberRole = member.groupRole ? ` (${member.groupRole})` : '';
+                      return (
+                        <SelectItem key={member.id} value={member.id}>
+                          {memberName}{memberRole}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
 
                 {/* Show selected member details */}
-                {selectedMember && members.find((m: any) => m.id === selectedMember) && (
+                {selectedMember && (members as any[]).find((m: any) => m.id === selectedMember) && (
                   <div className="p-3 bg-gray-50 rounded-lg">
                     <p className="text-sm">
                       <span className="font-medium">Selected:</span> {' '}
-                      {members.find((m: any) => m.id === selectedMember)?.firstName} {' '}
-                      {members.find((m: any) => m.id === selectedMember)?.lastName} {' '}
-                      ({members.find((m: any) => m.id === selectedMember)?.groupRole}) - {' '}
-                      Current Loan: {formatCurrency(parseFloat(members.find((m: any) => m.id === selectedMember)?.currentLoan || '0'))}
+                      {(members as any[]).find((m: any) => m.id === selectedMember)?.firstName} {' '}
+                      {(members as any[]).find((m: any) => m.id === selectedMember)?.lastName} {' '}
+                      ({(members as any[]).find((m: any) => m.id === selectedMember)?.groupRole}) - {' '}
+                      Current Loan: {formatCurrency(parseFloat((members as any[]).find((m: any) => m.id === selectedMember)?.currentLoan || '0'))}
                     </p>
                   </div>
                 )}
               </div>
             )}
 
-            {selectedMemberData && (
-              <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg">
-                <div className="text-sm">
-                  <div><span className="font-medium">Member:</span> {selectedMemberData.firstName} {selectedMemberData.lastName}</div>
-                  <div><span className="font-medium">Role:</span> {selectedMemberData.groupRole}</div>
-                  <div><span className="font-medium">Current Savings:</span> {formatCurrency(parseFloat(selectedMemberData.savingsBalance))}</div>
-                  <div><span className="font-medium">Current Loan:</span> {formatCurrency(parseFloat(selectedMemberData.currentLoan))}</div>
-                </div>
-              </div>
-            )}
 
             {selectedMember && (
-              <>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="loan-amount">Loan Amount (UGX)</Label>
                   <Input
@@ -316,24 +272,13 @@ export default function LoanSubmissionPage() {
                   />
                   {selectedGroupData && (
                     <div className="text-xs text-muted-foreground mt-1">
-                      Maximum: {formatCurrency(parseFloat(selectedGroupData.maxLoanAmount || '0'))}
+                      Maximum: {formatCurrency(parseFloat(selectedGroupData.maxLoanAmount || '0'))} | Interest: {selectedGroupData.interestRate}%/month
                     </div>
                   )}
                 </div>
 
                 <div>
-                  <Label htmlFor="loan-purpose">Loan Purpose</Label>
-                  <Input
-                    id="loan-purpose"
-                    placeholder="Enter the purpose of the loan"
-                    value={loanPurpose}
-                    onChange={(e) => setLoanPurpose(e.target.value)}
-                    data-testid="input-loan-purpose"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="repayment-period">Repayment Period (Months)</Label>
+                  <Label htmlFor="repayment-period">Repayment Period</Label>
                   <Select value={repaymentPeriod} onValueChange={setRepaymentPeriod}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select repayment period" />
@@ -347,7 +292,20 @@ export default function LoanSubmissionPage() {
                     </SelectContent>
                   </Select>
                 </div>
-              </>
+                
+                <div className="md:col-span-2">
+                  <Label htmlFor="loan-purpose">Loan Purpose</Label>
+                  <Textarea
+                    id="loan-purpose"
+                    placeholder="Enter the purpose of the loan"
+                    value={loanPurpose}
+                    onChange={(e) => setLoanPurpose(e.target.value)}
+                    data-testid="input-loan-purpose"
+                    className="resize-none"
+                    rows={3}
+                  />
+                </div>
+              </div>
             )}
 
             <Button
