@@ -805,20 +805,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Calculate interest amount and total repayment
       const principal = parseFloat(loanData.amount);
       const monthlyInterestRate = parseFloat(group.interestRate || '0') / 100; // Convert percentage
-      const months = loanData.repaymentPeriodMonths;
+      const months = loanData.termMonths;
       
       // Calculate total interest for the loan period
       const totalInterest = principal * monthlyInterestRate * months;
       const totalRepayment = principal + totalInterest;
       const monthlyPayment = totalRepayment / months;
       
-      // Create loan with calculated values
+      // Create loan with calculated values - only include valid schema fields
       const loanWithCalculations = {
         ...loanData,
         status: 'approved' as const, // Auto-approve loans submitted by leadership
-        interestAmount: totalInterest.toString(),
-        totalAmount: totalRepayment.toString(),
-        monthlyPayment: monthlyPayment.toString()
+        totalAmountDue: totalRepayment.toString(), // This field exists in schema
+        remainingBalance: totalRepayment.toString() // This field exists in schema
       };
       
       const loan = await storage.createLoan(loanWithCalculations);

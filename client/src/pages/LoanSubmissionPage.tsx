@@ -157,7 +157,8 @@ export default function LoanSubmissionPage() {
       memberId: selectedMember,
       amount: loanAmount,
       purpose: loanPurpose,
-      repaymentPeriodMonths: parseInt(repaymentPeriod)
+      termMonths: parseInt(repaymentPeriod),
+      interestRate: selectedGroupData?.interestRate || '10' // Get from group or default
     });
   };
 
