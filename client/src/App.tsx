@@ -63,9 +63,9 @@ function Router() {
   }
 
   // User is authenticated (either staff or member)
-  const isAdmin = userRole === 'admin';
-  const isFieldStaff = userRole === 'field';
-  const isMember = ['chairman', 'secretary', 'finance', 'member'].includes(userRole);
+  const isAdmin = isStaffAuthenticated && userRole === 'admin';
+  const isFieldStaff = isStaffAuthenticated && userRole === 'field';
+  const isMember = isMemberAuthenticated && ['chairman', 'secretary', 'finance', 'member'].includes(userRole);
   
   return (
     <Switch>

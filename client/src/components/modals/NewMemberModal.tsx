@@ -58,6 +58,8 @@ export function NewMemberModal({ open, onOpenChange, groupId, groupName }: NewMe
       nextOfKin: "",
       pin: "",
       currentLoan: "0",
+      totalShares: 0,
+      welfareBalance: "0.00",
     },
   });
 

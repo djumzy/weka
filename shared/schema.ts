@@ -273,6 +273,11 @@ export const insertMemberSchema = createInsertSchema(members).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
+}).extend({
+  phone: z.string().optional(),
+  email: z.string().optional(),
+  address: z.string().optional(),
+  nextOfKin: z.string().optional(),
 });
 
 export const insertTransactionSchema = createInsertSchema(transactions).omit({
