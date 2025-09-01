@@ -243,5 +243,39 @@ export function requireRole(allowedRoles: string[]) {
   };
 }
 
+// Middleware to check if member's group is still active
+export function requireActiveGroup(storage: any) {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    const userRole = (req as any).userRole;
+    const memberId = (req as any).memberId;
+    
+    // Only apply this check to members, not staff
+    if (userRole === 'member' && memberId) {
+      try {
+        const member = await storage.getMember(memberId);
+        if (!member) {
+          return res.status(401).json({ message: "Member not found" });
+        }
+        
+        const group = await storage.getGroup(member.groupId);
+        if (!group || !group.isActive) {
+          // Clear the session for deactivated group members
+          req.session.destroy((err) => {
+            if (err) console.error('Session destroy error:', err);
+          });
+          return res.status(403).json({ 
+            message: "Access denied. Your group has been deactivated. Please contact your administrator." 
+          });
+        }
+      } catch (error) {
+        console.error("Error checking group status:", error);
+        return res.status(500).json({ message: "Error validating group access" });
+      }
+    }
+    
+    next();
+  };
+}
+
 // Hash PIN utility for user creation
 export { hashPin };

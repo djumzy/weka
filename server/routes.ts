@@ -263,9 +263,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userRole: 'member'
       });
       
-      // Get group stats and group info for the member
-      const groupStats = await storage.getGroupStats(member.groupId);
+      // Get group info and check if group is active
       const group = await storage.getGroup(member.groupId);
+      
+      // Prevent access to deactivated groups
+      if (!group || !group.isActive) {
+        return res.status(403).json({ 
+          message: "Access denied. Your group has been deactivated. Please contact your administrator." 
+        });
+      }
+      
+      // Get group stats for the member
+      const groupStats = await storage.getGroupStats(member.groupId);
       
       res.json({
         userType: 'member',
@@ -302,9 +311,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Member not found" });
       }
 
-      // Get group stats and group info for the member
-      const groupStats = await storage.getGroupStats(member.groupId);
+      // Get group info and check if group is still active
       const group = await storage.getGroup(member.groupId);
+      
+      // Prevent access to deactivated groups
+      if (!group || !group.isActive) {
+        // Clear the session for deactivated group members
+        req.session.destroy((err) => {
+          if (err) console.error('Session destroy error:', err);
+        });
+        return res.status(403).json({ 
+          message: "Access denied. Your group has been deactivated. Please contact your administrator." 
+        });
+      }
+
+      // Get group stats for the member
+      const groupStats = await storage.getGroupStats(member.groupId);
 
 
       res.json({
