@@ -261,10 +261,21 @@ export default function Members() {
       </main>
 
       {/* New Member Modal */}
-      <NewMemberModal 
-        open={isNewMemberModalOpen} 
-        onOpenChange={setIsNewMemberModalOpen}
-      />
+      {isGroupLeader && memberSession?.member ? (
+        <NewMemberModal 
+          open={isNewMemberModalOpen} 
+          onOpenChange={setIsNewMemberModalOpen}
+          groupId={memberSession.member.groupId}
+          groupName={memberSession.member.groupName}
+        />
+      ) : isAdmin && selectedGroupId !== "all" ? (
+        <NewMemberModal 
+          open={isNewMemberModalOpen} 
+          onOpenChange={setIsNewMemberModalOpen}
+          groupId={selectedGroupId}
+          groupName={groups?.find((g: any) => g.id === selectedGroupId)?.name || "Selected Group"}
+        />
+      ) : null}
     </div>
   );
 }

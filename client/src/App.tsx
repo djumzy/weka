@@ -121,9 +121,10 @@ function Router() {
       
       {/* Default home routes based on role */}
       <Route path="/" component={() => {
+        // Prioritize member sessions first to prevent members seeing admin dashboard
+        if (memberSession?.member) return <MemberDashboard />;
         if (isAdmin) return <Dashboard />;
         if (isFieldStaff) return <FieldDashboard />;
-        if (memberSession?.member) return <MemberDashboard />;
         return <Login />;
       }} />
       
