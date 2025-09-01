@@ -178,8 +178,8 @@ export function setupAuth(app: Express) {
         return;
       }
       
-      // Handle member authentication
-      if (session.memberId && session.userRole === 'member') {
+      // Handle member authentication - but only if no userId is present (corrupted session check)
+      if (session.memberId && session.userRole === 'member' && !session.userId) {
         const member = await storage.getMember(session.memberId);
         if (!member || !member.isActive) {
           return res.status(401).json({ message: "Unauthorized" });
@@ -188,6 +188,15 @@ export function setupAuth(app: Express) {
         const { pin: _, ...memberWithoutPin } = member;
         res.json({ userType: 'member', member: memberWithoutPin });
         return;
+      }
+      
+      // Handle corrupted sessions - clear them
+      if (session.memberId && session.userId && session.userRole === 'member') {
+        console.log('Clearing corrupted member session with both userId and memberId');
+        req.session.destroy((err) => {
+          if (err) console.error('Session destroy error:', err);
+        });
+        return res.status(401).json({ message: "Session corrupted - cleared" });
       }
       
       console.log('No valid session found - unauthorized');
