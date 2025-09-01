@@ -553,6 +553,11 @@ export class DatabaseStorage implements IStorage {
       const allMembers = await db.select().from(members).where(eq(members.isActive, true));
       const allLoans = await db.select().from(loans);
       
+      console.log("=== DASHBOARD STATS DEBUG ===");
+      console.log(`Found ${allGroups.length} active groups:`, allGroups.map(g => g.name));
+      console.log(`Found ${allMembers.length} active members:`, allMembers.map(m => `${m.firstName} ${m.lastName} (loan: ${m.currentLoan})`));
+      console.log(`Found ${allLoans.length} total loans:`, allLoans.map(l => `${l.amount} (${l.status})`));
+      
       const totalGroups = allGroups.length;
       const totalMembers = allMembers.length;
       const maleMembers = allMembers.filter(m => m.gender === 'M').length;
@@ -567,12 +572,16 @@ export class DatabaseStorage implements IStorage {
       }, 0);
       
       const totalCurrentLoans = allMembers.reduce((total, member) => {
-        return total + parseFloat(member.currentLoan || '0');
+        const loanAmount = parseFloat(member.currentLoan || '0');
+        console.log(`Member ${member.firstName} ${member.lastName}: loan ${loanAmount}`);
+        return total + loanAmount;
       }, 0);
+      
+      console.log(`CALCULATED TOTAL LOANS: ${totalCurrentLoans}`);
       
       const totalCashInBox = totalSavings - totalCurrentLoans;
       
-      const activeLoans = allLoans.filter(loan => loan.status === 'active').length;
+      const activeLoans = allLoans.filter(loan => loan.status === 'active' || loan.status === 'approved').length;
       const totalLoansGiven = totalCurrentLoans;
       
       // Calculate total interest from current loans based on group interest rates
@@ -586,10 +595,14 @@ export class DatabaseStorage implements IStorage {
           
           // Calculate monthly interest (rate is monthly percentage)
           const monthlyInterest = currentLoanAmount * (groupInterestRate / 100);
+          console.log(`Member ${member.firstName} interest: ${currentLoanAmount} * ${groupInterestRate}% = ${monthlyInterest}`);
           return total + monthlyInterest;
         }
         return total;
       }, 0);
+      
+      console.log(`CALCULATED TOTAL INTEREST: ${totalInterest}`);
+      console.log("=== END DASHBOARD STATS DEBUG ===");
 
       return {
         totalGroups,
