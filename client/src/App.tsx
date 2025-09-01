@@ -27,31 +27,17 @@ import Reset from "@/pages/Reset";
 
 function Router() {
   const { isAuthenticated, isLoading, user } = useAuth();
-  const [memberSession, setMemberSession] = useState<any>(null);
-
-  // Check for member session in localStorage
-  useEffect(() => {
-    const stored = localStorage.getItem('memberSession');
-    if (stored) {
-      try {
-        setMemberSession(JSON.parse(stored));
-      } catch (e) {
-        console.log('Invalid member session in localStorage');
-      }
-    }
-  }, []);
 
   // If still loading authentication, show loading
   if (isLoading) {
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
   }
 
-  // Determine user type and role - STRICT SEPARATION
-  const isStaffAuthenticated = isAuthenticated && user?.role;
-  const isMemberAuthenticated = memberSession?.member;
+  // Determine user type based on authenticated user data
+  const userRole = user?.role || user?.groupRole;
   
   // If no authentication at all, show login
-  if (!isStaffAuthenticated && !isMemberAuthenticated) {
+  if (!isAuthenticated) {
     return (
       <Switch>
         <Route path="/reset" component={Reset} />
@@ -61,15 +47,15 @@ function Router() {
     );
   }
 
-  // STRICT ROLE DEFINITIONS - only one can be true at a time
-  const isAdmin = isStaffAuthenticated && user?.role === 'admin' && !isMemberAuthenticated;
-  const isFieldMonitor = isStaffAuthenticated && user?.role === 'field_monitor' && !isMemberAuthenticated;
-  const isFieldAttendant = isStaffAuthenticated && user?.role === 'field_attendant' && !isMemberAuthenticated;
-  const isMember = isMemberAuthenticated && !isStaffAuthenticated;
+  // Determine role based on authenticated user
+  const isAdmin = isAuthenticated && userRole === 'admin';
+  const isFieldMonitor = isAuthenticated && userRole === 'field_monitor';
+  const isFieldAttendant = isAuthenticated && userRole === 'field_attendant';
+  const isMember = isAuthenticated && ['chairman', 'secretary', 'finance', 'member'].includes(userRole);
   
   // Member permission levels
-  const isGroupLeader = isMember && memberSession?.member && ['chairman', 'secretary', 'finance'].includes(memberSession.member.groupRole);
-  const isRegularMember = isMember && memberSession?.member?.groupRole === 'member';
+  const isGroupLeader = isMember && ['chairman', 'secretary', 'finance'].includes(userRole);
+  const isRegularMember = isMember && userRole === 'member';
   
   return (
     <Switch>
