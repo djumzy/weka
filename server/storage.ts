@@ -660,8 +660,11 @@ export class DatabaseStorage implements IStorage {
       const activeLoans = allLoans.filter(loan => loan.status === 'active').length;
       const totalLoansGiven = totalCurrentLoans;
       
-      // Calculate total interest from all loans using standardized calculations
-      const totalInterest = allLoans.reduce((total, loan) => {
+      // Calculate total interest from loans in the database AND current member loans
+      let totalInterest = 0;
+      
+      // Interest from formal loan records
+      totalInterest += allLoans.reduce((total, loan) => {
         const originalAmount = parseFloat(loan.amount || '0');
         
         if (loan.totalAmountDue) {
@@ -681,6 +684,26 @@ export class DatabaseStorage implements IStorage {
           return total;
         }
       }, 0);
+      
+      // Interest from current member loans (when no formal loan records exist)
+      if (allLoans.length === 0) {
+        allMembers.forEach(member => {
+          const currentLoan = parseFloat(member.currentLoan || '0');
+          if (currentLoan > 0) {
+            const group = allGroups.find(g => g.id === member.groupId);
+            if (group) {
+              const monthlyInterestRate = parseFloat(group.interestRate || '0');
+              // Estimate average 6-month term for existing loans
+              const avgMonths = 6;
+              // Calculate original principal by working backwards from total amount due
+              const rateFactor = 1 + ((monthlyInterestRate / 100) * avgMonths);
+              const estimatedPrincipal = currentLoan / rateFactor;
+              const estimatedInterest = currentLoan - estimatedPrincipal;
+              totalInterest += estimatedInterest;
+            }
+          }
+        });
+      }
 
       return {
         totalGroups,
