@@ -6,17 +6,21 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { DollarSign, ArrowLeft } from "lucide-react";
+import { DollarSign, ArrowLeft, Check, ChevronsUpDown } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useLocation } from "wouter";
+import { cn } from "@/lib/utils";
 
 export default function LoanSubmissionPage() {
   const [selectedMember, setSelectedMember] = useState('');
   const [loanAmount, setLoanAmount] = useState('');
   const [loanPurpose, setLoanPurpose] = useState('');
   const [repaymentPeriod, setRepaymentPeriod] = useState('');
+  const [memberSearchOpen, setMemberSearchOpen] = useState(false);
   const { toast } = useToast();
   const { isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
@@ -131,32 +135,66 @@ export default function LoanSubmissionPage() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Member Selection */}
+            {/* Member Selection with Search */}
             <div>
               <Label htmlFor="member-select">Select Member *</Label>
-              <Select 
-                value={selectedMember} 
-                onValueChange={setSelectedMember}
-                data-testid="select-member"
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Choose a member..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {allMembers.map((member: any) => {
-                    const memberGroup = groups.find((g: any) => g.id === member.groupId);
-                    return (
-                      <SelectItem 
-                        key={member.id} 
-                        value={member.id}
-                        data-testid={`option-member-${member.id}`}
-                      >
-                        {member.firstName} {member.lastName} ({memberGroup?.name || 'Unknown Group'})
-                      </SelectItem>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
+              <Popover open={memberSearchOpen} onOpenChange={setMemberSearchOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={memberSearchOpen}
+                    className="w-full justify-between"
+                    data-testid="select-member"
+                  >
+                    {selectedMember
+                      ? (() => {
+                          const member = allMembers.find((m: any) => m.id === selectedMember);
+                          const memberGroup = groups.find((g: any) => g.id === member?.groupId);
+                          return `${member?.firstName} ${member?.lastName} (${memberGroup?.name || 'Unknown Group'})`;
+                        })()
+                      : "Search and select a member..."}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-full p-0">
+                  <Command>
+                    <CommandInput placeholder="Search by name, group, or phone..." />
+                    <CommandEmpty>No member found.</CommandEmpty>
+                    <CommandGroup className="max-h-64 overflow-auto">
+                      {allMembers.map((member: any) => {
+                        const memberGroup = groups.find((g: any) => g.id === member.groupId);
+                        return (
+                          <CommandItem
+                            key={member.id}
+                            value={`${member.firstName} ${member.lastName} ${memberGroup?.name || ''} ${member.phone || ''}`}
+                            onSelect={() => {
+                              setSelectedMember(member.id);
+                              setMemberSearchOpen(false);
+                            }}
+                            data-testid={`option-member-${member.id}`}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                selectedMember === member.id ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            <div className="flex flex-col">
+                              <span className="font-medium">
+                                {member.firstName} {member.lastName}
+                              </span>
+                              <span className="text-sm text-muted-foreground">
+                                {memberGroup?.name || 'Unknown Group'} • {member.phone || 'No phone'}
+                              </span>
+                            </div>
+                          </CommandItem>
+                        );
+                      })}
+                    </CommandGroup>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
 
             {/* Loan Amount */}
