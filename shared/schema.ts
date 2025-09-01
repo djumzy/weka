@@ -292,7 +292,11 @@ export const insertLoanSchema = createInsertSchema(loans).omit({
   updatedAt: true,
   approvalDate: true,
   disbursementDate: true,
+  dueDate: true,
   remainingBalance: true,
+  totalAmountDue: true,
+  monthsOverdue: true,
+  lastInterestUpdate: true,
   approvedBy: true,
 });
 

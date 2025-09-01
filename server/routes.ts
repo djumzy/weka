@@ -812,12 +812,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const totalRepayment = principal + totalInterest;
       const monthlyPayment = totalRepayment / months;
       
-      // Create loan with calculated values - only include valid schema fields
+      // Create loan with valid schema fields only
       const loanWithCalculations = {
         ...loanData,
-        status: 'approved' as const, // Auto-approve loans submitted by leadership
-        totalAmountDue: totalRepayment.toString(), // This field exists in schema
-        remainingBalance: totalRepayment.toString() // This field exists in schema
+        status: 'approved' as const // Auto-approve loans submitted by leadership
       };
       
       const loan = await storage.createLoan(loanWithCalculations);
