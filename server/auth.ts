@@ -200,9 +200,10 @@ export function setupAuth(app: Express) {
         if (!member || !member.isActive) {
           return res.status(401).json({ message: "Unauthorized" });
         }
-        // Return member data (without PIN)
+        // Return member data (without PIN) with role field for unified auth
         const { pin: _, ...memberWithoutPin } = member;
-        res.json({ userType: 'member', member: memberWithoutPin });
+        const memberWithRole = { ...memberWithoutPin, role: 'member' };
+        res.json({ userType: 'member', member: memberWithRole });
         return;
       }
       

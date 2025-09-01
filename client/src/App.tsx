@@ -27,40 +27,18 @@ import Reset from "@/pages/Reset";
 
 function Router() {
   const { isAuthenticated, isLoading, user } = useAuth();
-  const [memberSession, setMemberSession] = useState<any>(null);
-
-  // Check for member session in localStorage
-  useEffect(() => {
-    const stored = localStorage.getItem('memberSession');
-    if (stored) {
-      try {
-        setMemberSession(JSON.parse(stored));
-      } catch (e) {
-        console.log('Invalid member session in localStorage');
-      }
-    }
-  }, []);
 
   // If still loading authentication, show loading
   if (isLoading) {
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
   }
 
-  // Determine user type and role - STRICT SEPARATION
-  const isStaffAuthenticated = isAuthenticated && user?.role;
-  const isMemberAuthenticated = memberSession?.member;
-  
-  // Debug logging
-  console.log('Auth State Debug:', {
-    isAuthenticated,
-    userRole: user?.role,
-    isStaffAuthenticated,
-    isMemberAuthenticated: !!isMemberAuthenticated,
-    memberSessionKeys: memberSession ? Object.keys(memberSession) : null
-  });
+  // Use the unified auth system - /api/auth/user handles both staff and members
+  const isStaffAuthenticated = isAuthenticated && (user as any)?.role && (user as any)?.role !== 'member';
+  const isMemberAuthenticated = isAuthenticated && (user as any)?.role === 'member';
   
   // If no authentication at all, show login
-  if (!isStaffAuthenticated && !isMemberAuthenticated) {
+  if (!isAuthenticated) {
     return (
       <Switch>
         <Route path="/reset" component={Reset} />
@@ -70,20 +48,15 @@ function Router() {
     );
   }
 
-  // STRICT ROLE DEFINITIONS - only one can be true at a time
-  const isAdmin = isStaffAuthenticated && user?.role === 'admin' && !isMemberAuthenticated;
-  const isFieldMonitor = isStaffAuthenticated && user?.role === 'field_monitor' && !isMemberAuthenticated;
-  const isFieldAttendant = isStaffAuthenticated && user?.role === 'field_attendant' && !isMemberAuthenticated;
-  const isMember = isMemberAuthenticated && !isStaffAuthenticated;
+  // STRICT ROLE DEFINITIONS - simplified using unified auth
+  const isAdmin = isStaffAuthenticated && (user as any)?.role === 'admin';
+  const isFieldMonitor = isStaffAuthenticated && (user as any)?.role === 'field_monitor';
+  const isFieldAttendant = isStaffAuthenticated && (user as any)?.role === 'field_attendant';
+  const isMember = isMemberAuthenticated;
   
-  // Debug member routing
-  console.log('Role Resolution:', {
-    isAdmin, isFieldMonitor, isFieldAttendant, isMember
-  });
-  
-  // Member permission levels
-  const isGroupLeader = isMember && memberSession?.member && ['chairman', 'secretary', 'finance'].includes(memberSession.member.groupRole);
-  const isRegularMember = isMember && memberSession?.member?.groupRole === 'member';
+  // Member permission levels - use user data from unified auth
+  const isGroupLeader = isMember && user && ['chairman', 'secretary', 'finance'].includes((user as any).groupRole);
+  const isRegularMember = isMember && user && (user as any).groupRole === 'member';
   
   return (
     <Switch>
@@ -112,7 +85,7 @@ function Router() {
             </>
           )}
           {/* Default route for members */}
-          <Route path="/" component={MemberDashboard} />
+          <Route path="/" component={() => <MemberDashboard />} />
         </>
       )}
       
