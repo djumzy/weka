@@ -30,18 +30,18 @@ export default function Meetings() {
   });
 
   const getGroupName = (groupId: string) => {
-    const group = groups.find((g: any) => g.id === groupId);
+    const group = (groups as any[]).find((g: any) => g.id === groupId);
     return group ? group.name : "Unknown Group";
   };
 
-  const filteredMeetings = meetings.filter((meeting: any) => {
+  const filteredMeetings = (meetings as any[]).filter((meeting: any) => {
     const matchesGroup = selectedGroupId === "all" || meeting.groupId === selectedGroupId;
     const matchesStatus = selectedStatus === "all" || meeting.status === selectedStatus;
     return matchesGroup && matchesStatus;
   });
 
   // Separate upcoming meetings with priority for notifications
-  const upcomingMeetingsWithAlarms = meetings.filter((meeting: any) => {
+  const upcomingMeetingsWithAlarms = (meetings as any[]).filter((meeting: any) => {
     const meetingDate = new Date(meeting.date);
     const now = new Date();
     const hoursUntil = differenceInHours(meetingDate, now);
@@ -57,7 +57,7 @@ export default function Meetings() {
     return styles[status as keyof typeof styles] || "bg-gray-100 text-gray-800";
   };
 
-  const upcomingMeetings = meetings.filter((meeting: any) => {
+  const upcomingMeetings = (meetings as any[]).filter((meeting: any) => {
     const meetingDate = new Date(meeting.date);
     const now = new Date();
     return meetingDate > now && meeting.status === 'scheduled';
@@ -192,7 +192,7 @@ export default function Meetings() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Groups</SelectItem>
-                {groups.map((group: any) => (
+                {(groups as any[]).map((group: any) => (
                   <SelectItem key={group.id} value={group.id}>
                     {group.name}
                   </SelectItem>

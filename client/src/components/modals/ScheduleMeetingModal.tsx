@@ -59,10 +59,10 @@ export function ScheduleMeetingModal({ open, onOpenChange, preselectedGroupId }:
     enabled: open,
   });
 
-  // Filter groups based on user permissions
+  // Filter groups based on user permissions  
   const availableGroups = user?.role === 'admin' 
-    ? groups 
-    : groups.filter((group: any) => {
+    ? (groups as any[])
+    : (groups as any[]).filter((group: any) => {
         // For members, only show their own group
         if (user?.groupRole && user?.memberId) {
           // Get member info to find their group
