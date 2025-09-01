@@ -24,7 +24,7 @@ import {
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, count, sum, gte, lte, sql } from "drizzle-orm";
-import { calculateGroupFinancials, calculateMemberShares } from "./calculations";
+import { calculateGroupFinancials, calculateMemberShares, calculateLoanTotalDue, calculateLoanInterest } from "./calculations";
 
 export interface IStorage {
   // User operations
@@ -89,6 +89,12 @@ export interface IStorage {
       totalMembersChecked: number;
       groupFinancials: any;
     };
+  }>;
+  
+  // Fix existing loans to have proper totalAmountDue calculations
+  fixExistingLoanCalculations(): Promise<{
+    loansFixed: number;
+    corrections: string[];
   }>;
 
   // Enhanced transaction operations
@@ -557,6 +563,48 @@ export class DatabaseStorage implements IStorage {
     };
   }
 
+  // Fix existing loans to have proper totalAmountDue calculations
+  async fixExistingLoanCalculations(): Promise<{
+    loansFixed: number;
+    corrections: string[];
+  }> {
+    const corrections: string[] = [];
+    let loansFixed = 0;
+    
+    // Get all loans
+    const allLoans = await db.select().from(loans);
+    
+    for (const loan of allLoans) {
+      // Skip loans that already have totalAmountDue
+      if (loan.totalAmountDue) continue;
+      
+      // Get the group for this loan to get interest rate
+      const group = await this.getGroup(loan.groupId);
+      if (!group) continue;
+      
+      const principal = parseFloat(loan.amount || '0');
+      const monthlyInterestRate = parseFloat(group.interestRate || '0');
+      const months = parseInt(loan.termMonths?.toString() || '1');
+      
+      // Calculate using standardized formula
+      const totalDue = calculateLoanTotalDue(principal, monthlyInterestRate, months, false);
+      
+      // Update the loan with calculated totalAmountDue
+      await this.updateLoan(loan.id, {
+        totalAmountDue: totalDue.toString(),
+        remainingBalance: totalDue.toString()
+      });
+      
+      corrections.push(`Fixed loan ${loan.id}: Added totalAmountDue = ${totalDue.toFixed(2)}`);
+      loansFixed++;
+    }
+    
+    return {
+      loansFixed,
+      corrections: corrections.length > 0 ? corrections : ["All loans already have proper calculations"]
+    };
+  }
+
   // Enhanced member and transaction methods for dashboard
   async getGroupMembers(groupId: string): Promise<Member[]> {
     return await db.select().from(members).where(eq(members.groupId, groupId));
@@ -612,12 +660,26 @@ export class DatabaseStorage implements IStorage {
       const activeLoans = allLoans.filter(loan => loan.status === 'active').length;
       const totalLoansGiven = totalCurrentLoans;
       
-      // Calculate total interest from all loans
+      // Calculate total interest from all loans using standardized calculations
       const totalInterest = allLoans.reduce((total, loan) => {
         const originalAmount = parseFloat(loan.amount || '0');
-        const totalDue = parseFloat(loan.totalAmountDue || '0');
-        const interestEarned = totalDue - originalAmount;
-        return total + Math.max(0, interestEarned);
+        
+        if (loan.totalAmountDue) {
+          // Use stored totalAmountDue if available
+          const totalDue = parseFloat(loan.totalAmountDue);
+          const interestEarned = totalDue - originalAmount;
+          return total + Math.max(0, interestEarned);
+        } else {
+          // Calculate interest using standardized formula for loans without totalAmountDue
+          const group = allGroups.find(g => g.id === loan.groupId);
+          if (group) {
+            const monthlyInterestRate = parseFloat(group.interestRate || '0');
+            const months = parseInt(loan.termMonths?.toString() || '1');
+            const interest = calculateLoanInterest(originalAmount, monthlyInterestRate, months, false);
+            return total + interest;
+          }
+          return total;
+        }
       }, 0);
 
       return {

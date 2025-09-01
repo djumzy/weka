@@ -581,6 +581,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Fix existing loans to have proper totalAmountDue calculations
+  app.post('/api/fix-loan-calculations', isAuthenticated, async (req, res) => {
+    try {
+      const result = await storage.fixExistingLoanCalculations();
+      res.json({
+        message: "Loan calculations fixed",
+        loansFixed: result.loansFixed,
+        corrections: result.corrections
+      });
+    } catch (error) {
+      console.error("Error fixing loan calculations:", error);
+      res.status(500).json({ message: "Failed to fix loan calculations" });
+    }
+  });
+
   // Member routes with role-based filtering
   app.get('/api/members', isAuthenticated, async (req: any, res) => {
     try {
