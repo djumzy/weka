@@ -255,12 +255,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Members do NOT need user records - they exist only in members table
       // Set session for member authentication using member data directly
       (req.session as any).memberId = member.id;
-      (req.session as any).userId = member.id; // Use member ID for audit trail
+      // Do NOT set userId for members - this confuses staff/member authentication
       (req.session as any).userRole = 'member';
       
       console.log('Member session created:', {
         memberId: member.id,
-        userId: member.id,
         userRole: 'member'
       });
       
