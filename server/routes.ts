@@ -10,6 +10,7 @@ import {
   insertMeetingSchema,
   insertUserSchema,
   insertCashboxSchema,
+  memberLoginSchema,
   type InsertUser
 } from "@shared/schema";
 import { generateUserId, hashPin, comparePin } from "./auth";
@@ -237,11 +238,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Unified authentication endpoints
   app.post('/api/auth/member-login', async (req, res) => {
     try {
-      const { phone, pin } = req.body;
-      
-      if (!phone || !pin) {
-        return res.status(400).json({ message: "Phone and PIN are required" });
-      }
+      const { phone, pin } = memberLoginSchema.parse(req.body);
       
       const member = await storage.getMemberByPhone(phone);
       if (!member) {
@@ -260,7 +257,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         memberUser = await storage.getUserByPhoneOrUserId(`MB${member.id.slice(-6)}`);
         if (!memberUser) {
           console.log('Creating user record for member:', member.firstName, member.lastName);
-          // Create user record for member
+          // Create user record for member - only if doesn't exist
           memberUser = await storage.createUser({
             userId: `MB${member.id.slice(-6)}`, // MB prefix for member users
             firstName: member.firstName,
@@ -271,11 +268,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
             isActive: member.isActive
           });
           console.log('Created user record:', memberUser.id, memberUser.userId);
+        } else {
+          console.log('Found existing user record for member:', memberUser.userId);
         }
       } catch (e) {
         console.error('Failed to create member user record:', e);
-        // Use admin user as fallback for audit trail
-        memberUser = { id: '78d710c9-48fb-4e3b-8caa-d9f14fc7a57e' };
+        // Try to find existing record first before fallback
+        try {
+          memberUser = await storage.getUserByPhoneOrUserId(`MB${member.id.slice(-6)}`);
+          console.log('Found existing user during error recovery:', memberUser?.userId);
+        } catch (findError) {
+          console.log('Using admin fallback for audit trail');
+          // Use admin user as fallback for audit trail
+          memberUser = { id: '78d710c9-48fb-4e3b-8caa-d9f14fc7a57e' };
+        }
       }
       
       // Set session for member authentication - DO NOT set userId to avoid staff auth conflict
