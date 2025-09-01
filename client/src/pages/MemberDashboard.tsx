@@ -69,7 +69,15 @@ export default function MemberDashboard() {
 
   // Function to load fresh session data
   const loadFreshSessionData = () => {
-    fetch('/api/member-session', { cache: 'no-cache' })
+    console.log('Fetching fresh data from database...');
+    fetch('/api/member-session', { 
+      cache: 'no-cache',
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
+    })
       .then(response => {
         if (response.ok) {
           return response.json();
@@ -77,8 +85,16 @@ export default function MemberDashboard() {
         throw new Error('No session found');
       })
       .then(session => {
+        console.log('FRESH API DATA - currentLoan:', session.member.currentLoan);
+        console.log('FULL MEMBER DATA:', session.member);
+        
+        // FORCE CLEAR OLD CACHE BEFORE SETTING NEW DATA
+        localStorage.removeItem('memberSession');
+        
+        // Set fresh data from database
         setMemberSession(session);
         localStorage.setItem('memberSession', JSON.stringify(session));
+        console.log('Updated localStorage with fresh data');
       })
       .catch(error => {
         console.log('Member session not available:', error.message);
@@ -92,30 +108,41 @@ export default function MemberDashboard() {
 
   // Load member session from API to get fresh data
   useEffect(() => {
-    // First try localStorage for faster loading
-    const cachedSession = localStorage.getItem('memberSession');
-    if (cachedSession) {
-      try {
-        const parsed = JSON.parse(cachedSession);
-        if (parsed?.member) {
-          setMemberSession(parsed);
-        }
-      } catch (e) {
-        console.log('Invalid cached session');
-      }
-    }
-
-    // Then fetch fresh data
+    // CRITICAL: Always get fresh data from database, never trust cache for financial data
+    console.log('Loading fresh member data from database...');
     loadFreshSessionData();
   }, [setLocation]);
+  
+  // Refresh data every 10 seconds to ensure accuracy
+  useEffect(() => {
+    const interval = setInterval(() => {
+      console.log('Auto-refreshing member data...');
+      loadFreshSessionData();
+    }, 10000);
+    return () => clearInterval(interval);
+  }, []);
 
-  // Listen for member data updates
+  // Listen for member data updates and manual refresh
   useEffect(() => {
     const handleDataUpdate = () => {
+      console.log('Manual refresh triggered');
       loadFreshSessionData();
     };
+    
+    const handleKeyPress = (e: KeyboardEvent) => {
+      if (e.key === 'F5' || (e.ctrlKey && e.key === 'r')) {
+        e.preventDefault();
+        console.log('F5/Ctrl+R refresh triggered');
+        loadFreshSessionData();
+      }
+    };
+    
     window.addEventListener('memberDataUpdated', handleDataUpdate);
-    return () => window.removeEventListener('memberDataUpdated', handleDataUpdate);
+    window.addEventListener('keydown', handleKeyPress);
+    return () => {
+      window.removeEventListener('memberDataUpdated', handleDataUpdate);
+      window.removeEventListener('keydown', handleKeyPress);
+    };
   }, []);
 
   // Loading state while fetching fresh data
@@ -198,11 +225,24 @@ export default function MemberDashboard() {
             </div>
           </div>
         </div>
-        <Button variant="outline" onClick={handleLogout} className="self-start sm:self-center">
-          <LogOut className="w-4 h-4 mr-2" />
-          <span className="hidden sm:inline">Logout</span>
-          <span className="sm:hidden">Exit</span>
-        </Button>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <Button 
+            variant="outline" 
+            onClick={() => {
+              console.log('Manual refresh clicked');
+              loadFreshSessionData();
+            }} 
+            className="self-start sm:self-center text-xs sm:text-sm"
+            data-testid="button-refresh-data"
+          >
+            🔄 Refresh Data
+          </Button>
+          <Button variant="outline" onClick={handleLogout} className="self-start sm:self-center" data-testid="button-logout">
+            <LogOut className="w-4 h-4 mr-2" />
+            <span className="hidden sm:inline">Logout</span>
+            <span className="sm:hidden">Exit</span>
+          </Button>
+        </div>
       </div>
 
       {/* Personal Stats - Mobile Responsive */}
