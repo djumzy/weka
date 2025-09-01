@@ -15,7 +15,6 @@ export default function Groups() {
   const [searchTerm, setSearchTerm] = useState("");
   const [isNewGroupModalOpen, setIsNewGroupModalOpen] = useState(false);
   const [editingGroup, setEditingGroup] = useState<Group | null>(null);
-  const [groupToDelete, setGroupToDelete] = useState<Group | null>(null);
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -70,11 +69,8 @@ export default function Groups() {
     },
   });
 
-  const handleDeleteGroup = () => {
-    if (groupToDelete) {
-      deleteGroupMutation.mutate(groupToDelete.id);
-      setGroupToDelete(null);
-    }
+  const handleDeleteGroup = (group: Group) => {
+    deleteGroupMutation.mutate(group.id);
   };
 
   if (isLoading) {
@@ -232,10 +228,7 @@ export default function Groups() {
                             <AlertDialogFooter>
                               <AlertDialogCancel>Cancel</AlertDialogCancel>
                               <AlertDialogAction 
-                                onClick={() => {
-                                  setGroupToDelete(group);
-                                  handleDeleteGroup();
-                                }}
+                                onClick={() => handleDeleteGroup(group)}
                                 className="bg-red-600 hover:bg-red-700"
                               >
                                 Delete Group
