@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,184 +7,111 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { formatCurrency } from "@/lib/utils";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { DollarSign, ArrowLeft } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useLocation } from "wouter";
 
 export default function LoanSubmissionPage() {
-  const [selectedGroup, setSelectedGroup] = useState('');
   const [selectedMember, setSelectedMember] = useState('');
   const [loanAmount, setLoanAmount] = useState('');
   const [loanPurpose, setLoanPurpose] = useState('');
   const [repaymentPeriod, setRepaymentPeriod] = useState('');
-  const [memberSession, setMemberSession] = useState<any>(null);
   const { toast } = useToast();
   const { isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
 
-  // Load member session for leadership roles
-  useEffect(() => {
-    // Fetch member session from backend instead of localStorage
-    fetch('/api/member-session')
-      .then(response => {
-        if (response.ok) {
-          return response.json();
-        }
-        return null;
-      })
-      .then(session => {
-        if (session?.member) {
-          setMemberSession(session);
-          if (session.member.groupId) {
-            setSelectedGroup(session.member.groupId);
-          }
-        }
-      })
-      .catch(error => {
-        console.log('Member session not available:', error.message);
-      });
-  }, []);
-
-  // Check if user is leadership role
-  const isLeadershipRole = memberSession && ['chairman', 'secretary', 'finance'].includes(memberSession.member?.groupRole);
-
-  // Fetch groups (for group selection and auto-detection of interest rates)
+  // Fetch all groups
   const { data: groups = [] } = useQuery({
     queryKey: ["/api/groups"],
-    enabled: isAuthenticated, // Enable for all authenticated users to support auto-detection
+    enabled: isAuthenticated,
   });
 
-  // Fetch all members for selected group (regardless of role)
-  const { data: members = [] } = useQuery({
-    queryKey: ["/api/groups", selectedGroup, "members"],
-    enabled: !!selectedGroup,
+  // Fetch all members from all groups
+  const { data: allMembers = [] } = useQuery({
+    queryKey: ["/api/members"],
+    enabled: isAuthenticated,
   });
-
-  // Get selected group data for loan limits
-  const selectedGroupData = (groups as any[]).find((g: any) => g.id === selectedGroup);
 
   const submitLoanMutation = useMutation({
-    mutationFn: async (data: { 
-      groupId: string; 
-      memberId: string; 
-      amount: string; 
-      purpose: string; 
-      repaymentPeriodMonths: number; 
-    }) => {
-      const response = await apiRequest("POST", "/api/loans", {
-        groupId: data.groupId,
-        memberId: data.memberId,
-        amount: data.amount,
-        purpose: data.purpose,
-        repaymentPeriodMonths: data.repaymentPeriodMonths,
-        applicationDate: new Date().toISOString(),
-        status: "approved", // Auto-approve for admin submission
-        approvedBy: "admin",
-        approvedDate: new Date().toISOString()
+    mutationFn: async (data: any) => {
+      return apiRequest('/api/loans', {
+        method: 'POST',
+        body: JSON.stringify(data),
       });
-      return response.json();
     },
     onSuccess: () => {
       toast({
-        title: "Success",
-        description: "Loan submitted successfully",
+        title: "Success!",
+        description: "Loan application submitted successfully and auto-approved!",
       });
+      // Reset form
       setSelectedMember('');
       setLoanAmount('');
       setLoanPurpose('');
       setRepaymentPeriod('');
+      // Invalidate queries to refresh data
       queryClient.invalidateQueries({ queryKey: ["/api/loans"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/members"] });
     },
-    onError: (error: Error) => {
+    onError: (error: any) => {
+      console.error('Loan submission error:', error);
       toast({
         title: "Error",
-        description: error.message,
+        description: error.message || "Failed to submit loan application",
         variant: "destructive",
       });
     },
   });
 
-  const selectedMemberData = (members as any[]).find((m: any) => m.id === selectedMember);
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedGroup || !selectedMember || !loanAmount || !loanPurpose || !repaymentPeriod) {
-      toast({
-        title: "Missing Information",
-        description: "Please select group, member, enter loan amount, purpose, and repayment period",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const amount = parseFloat(loanAmount);
-    const maxLoanAmount = selectedGroupData ? parseFloat(selectedGroupData.maxLoanAmount || '0') : 0;
-
-    if (amount <= 0) {
-      toast({
-        title: "Invalid Amount",
-        description: "Loan amount must be greater than 0",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (maxLoanAmount > 0 && amount > maxLoanAmount) {
-      toast({
-        title: "Loan Amount Too High",
-        description: `Maximum loan amount for this group is ${formatCurrency(maxLoanAmount)}`,
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Check if member already has a loan
-    const existingLoan = parseFloat(selectedMemberData?.currentLoan || '0');
-    if (existingLoan > 0) {
-      toast({
-        title: "Existing Loan Found",
-        description: `This member already has an outstanding loan of ${formatCurrency(existingLoan)}. Please clear existing loan before applying for a new one.`,
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Convert string values to proper numeric types for validation
-    const numericAmount = parseFloat(loanAmount);
-    const numericTermMonths = parseInt(repaymentPeriod);
     
-    // AUTO-DETECT: Get group ID from selected member
-    const autoGroupId = selectedMemberData?.groupId;
-    
-    // AUTO-DETECT: Get interest rate from group agreement
-    const groupData = groups?.find((group: any) => group.id === autoGroupId);
-    const autoInterestRate = groupData?.interestRate || 10; // Fallback to 10% if not found
+    // Validate required fields
+    if (!selectedMember || !loanAmount || !repaymentPeriod) {
+      toast({
+        title: "Validation Error",
+        description: "Please fill in all required fields.",
+        variant: "destructive",
+      });
+      return;
+    }
 
-    // Log data being sent for debugging with auto-detection info
-    const loanSubmissionData = {
-      groupId: autoGroupId, // AUTO-DETECTED from selected member
-      memberId: selectedMember, // Selected member ID
-      amount: numericAmount.toString(), // string for decimal field
-      purpose: loanPurpose || '',
-      termMonths: numericTermMonths, // number as expected by schema
-      interestRate: autoInterestRate.toString(), // string for decimal field
-      status: 'approved' // AUTO-APPROVED
+    // Find the selected member to get their group
+    const selectedMemberData = allMembers.find((member: any) => member.id === selectedMember);
+    if (!selectedMemberData) {
+      toast({
+        title: "Error",
+        description: "Selected member not found.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Find the group to get interest rate
+    const memberGroup = groups.find((group: any) => group.id === selectedMemberData.groupId);
+    const interestRate = memberGroup?.interestRate || 10; // Default 10% if not found
+
+    // Prepare data exactly matching database structure
+    const loanData = {
+      groupId: selectedMemberData.groupId, // AUTO-DETECTED from member
+      memberId: selectedMember,
+      amount: loanAmount, // Keep as string for decimal
+      interestRate: interestRate.toString(), // String for decimal
+      termMonths: parseInt(repaymentPeriod), // Number as expected
+      status: 'approved', // AUTO-APPROVED
+      purpose: loanPurpose || 'General loan' // Optional field
     };
-    
-    console.log('=== FRONTEND LOAN SUBMISSION (AUTO-DETECTION) ===');
-    console.log('✓ Auto-detected Group ID:', autoGroupId, 'from member:', selectedMemberData?.firstName, selectedMemberData?.lastName);
-    console.log('✓ Auto-detected Interest Rate:', autoInterestRate + '%', 'from group agreement');
-    console.log('✓ Auto-approved status: approved');
-    console.log('Full submission data:', JSON.stringify(loanSubmissionData, null, 2));
 
-    submitLoanMutation.mutate(loanSubmissionData);
+    console.log('=== SUBMITTING LOAN ===');
+    console.log('Auto-detected Group ID:', selectedMemberData.groupId);
+    console.log('Auto-detected Interest Rate:', interestRate + '%');
+    console.log('Final loan data:', loanData);
+
+    submitLoanMutation.mutate(loanData);
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" data-testid="loan-submission-page">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <DollarSign className="h-6 w-6" />
@@ -194,6 +121,7 @@ export default function LoanSubmissionPage() {
           variant="outline" 
           onClick={() => setLocation('/')}
           className="flex items-center gap-2"
+          data-testid="button-back"
         >
           <ArrowLeft className="h-4 w-4" />
           Back to Dashboard
@@ -202,139 +130,106 @@ export default function LoanSubmissionPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Submit Loan Application for Group Members</CardTitle>
+          <CardTitle>New Loan Application</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Show group selection only for admin users */}
-            {!isLeadershipRole && (
-              <div>
-                <Label htmlFor="group-select">Select Group</Label>
-                <Select value={selectedGroup} onValueChange={(value) => {
-                  setSelectedGroup(value);
-                  setSelectedMember(''); // Reset member selection when group changes
-                }}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Choose a group" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(groups as any[]).map((group: any) => (
-                      <SelectItem key={group.id} value={group.id}>
-                        {group.groupName} - {group.location}
+            {/* Member Selection */}
+            <div>
+              <Label htmlFor="member-select">Select Member *</Label>
+              <Select 
+                value={selectedMember} 
+                onValueChange={setSelectedMember}
+                data-testid="select-member"
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Choose a member..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {allMembers.map((member: any) => {
+                    const memberGroup = groups.find((g: any) => g.id === member.groupId);
+                    return (
+                      <SelectItem 
+                        key={member.id} 
+                        value={member.id}
+                        data-testid={`option-member-${member.id}`}
+                      >
+                        {member.firstName} {member.lastName} ({memberGroup?.name || 'Unknown Group'})
                       </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+            </div>
 
-            {/* Show read-only group field for leadership users */}
-            {isLeadershipRole && memberSession && (
-              <div>
-                <Label htmlFor="group-display">Group Information</Label>
-                <div className="p-3 bg-gray-100 dark:bg-gray-800 rounded-md border">
-                  <div className="text-sm">
-                    <div className="font-medium">{memberSession.member?.groupName || 'Unknown Group'}</div>
-                    <div className="text-xs text-gray-500 mt-1">Your Role: {memberSession.member?.groupRole}</div>
-                  </div>
-                </div>
-                <p className="text-xs text-gray-500 mt-1">This group is automatically selected based on your membership.</p>
-              </div>
-            )}
+            {/* Loan Amount */}
+            <div>
+              <Label htmlFor="loan-amount">Loan Amount *</Label>
+              <Input
+                id="loan-amount"
+                type="number"
+                step="0.01"
+                min="0"
+                value={loanAmount}
+                onChange={(e) => setLoanAmount(e.target.value)}
+                placeholder="Enter amount (e.g., 1000.00)"
+                data-testid="input-amount"
+                required
+              />
+            </div>
 
-            {selectedGroup && (
-              <div className="space-y-4">
-                <Label htmlFor="member-select">Select Member</Label>
-                
-                {/* Single searchable dropdown for all members */}
-                <Select value={selectedMember} onValueChange={setSelectedMember}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a member from the group" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(members as any[]).map((member: any) => {
-                      const memberName = `${member.firstName || 'N/A'} ${member.lastName || 'N/A'}`; 
-                      const memberRole = member.groupRole ? ` (${member.groupRole})` : '';
-                      return (
-                        <SelectItem key={member.id} value={member.id}>
-                          {memberName}{memberRole}
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
+            {/* Loan Purpose */}
+            <div>
+              <Label htmlFor="loan-purpose">Loan Purpose</Label>
+              <Textarea
+                id="loan-purpose"
+                value={loanPurpose}
+                onChange={(e) => setLoanPurpose(e.target.value)}
+                placeholder="What is this loan for? (optional)"
+                data-testid="input-purpose"
+              />
+            </div>
 
-                {/* Show selected member details */}
-                {selectedMember && (members as any[]).find((m: any) => m.id === selectedMember) && (
-                  <div className="p-3 bg-gray-50 rounded-lg">
-                    <p className="text-sm">
-                      <span className="font-medium">Selected:</span> {' '}
-                      {(members as any[]).find((m: any) => m.id === selectedMember)?.firstName} {' '}
-                      {(members as any[]).find((m: any) => m.id === selectedMember)?.lastName} {' '}
-                      ({(members as any[]).find((m: any) => m.id === selectedMember)?.groupRole}) - {' '}
-                      Current Loan: {formatCurrency(parseFloat((members as any[]).find((m: any) => m.id === selectedMember)?.currentLoan || '0'))}
-                    </p>
-                  </div>
-                )}
-              </div>
-            )}
+            {/* Repayment Period */}
+            <div>
+              <Label htmlFor="repayment-period">Repayment Period (months) *</Label>
+              <Select 
+                value={repaymentPeriod} 
+                onValueChange={setRepaymentPeriod}
+                data-testid="select-term"
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Choose repayment period..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1" data-testid="option-term-1">1 month</SelectItem>
+                  <SelectItem value="3" data-testid="option-term-3">3 months</SelectItem>
+                  <SelectItem value="6" data-testid="option-term-6">6 months</SelectItem>
+                  <SelectItem value="12" data-testid="option-term-12">12 months</SelectItem>
+                  <SelectItem value="18" data-testid="option-term-18">18 months</SelectItem>
+                  <SelectItem value="24" data-testid="option-term-24">24 months</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-
+            {/* Auto-detected Info Display */}
             {selectedMember && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="loan-amount">Loan Amount (UGX)</Label>
-                  <Input
-                    id="loan-amount"
-                    type="number"
-                    placeholder="Enter loan amount"
-                    value={loanAmount}
-                    onChange={(e) => setLoanAmount(e.target.value)}
-                    data-testid="input-loan-amount"
-                  />
-                  {selectedGroupData && (
-                    <div className="text-xs text-muted-foreground mt-1">
-                      Maximum: {formatCurrency(parseFloat(selectedGroupData.maxLoanAmount || '0'))} | Interest: {selectedGroupData.interestRate}%/month
-                    </div>
-                  )}
-                </div>
-
-                <div>
-                  <Label htmlFor="repayment-period">Repayment Period</Label>
-                  <Select value={repaymentPeriod} onValueChange={setRepaymentPeriod}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select repayment period" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="1">1 Month</SelectItem>
-                      <SelectItem value="2">2 Months</SelectItem>
-                      <SelectItem value="3">3 Months</SelectItem>
-                      <SelectItem value="6">6 Months</SelectItem>
-                      <SelectItem value="12">12 Months</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="md:col-span-2">
-                  <Label htmlFor="loan-purpose">Loan Purpose</Label>
-                  <Textarea
-                    id="loan-purpose"
-                    placeholder="Enter the purpose of the loan"
-                    value={loanPurpose}
-                    onChange={(e) => setLoanPurpose(e.target.value)}
-                    data-testid="input-loan-purpose"
-                    className="resize-none"
-                    rows={3}
-                  />
-                </div>
+              <div className="bg-blue-50 p-3 rounded-md">
+                <h4 className="font-medium text-blue-900 mb-2">Auto-detected Information:</h4>
+                <ul className="text-sm text-blue-700 space-y-1">
+                  <li>✓ Group: {groups.find((g: any) => g.id === allMembers.find((m: any) => m.id === selectedMember)?.groupId)?.name}</li>
+                  <li>✓ Interest Rate: {groups.find((g: any) => g.id === allMembers.find((m: any) => m.id === selectedMember)?.groupId)?.interestRate || 10}% per month</li>
+                  <li>✓ Status: Will be auto-approved</li>
+                </ul>
               </div>
             )}
 
-            <Button
-              type="submit"
-              disabled={submitLoanMutation.isPending || !selectedGroup || !selectedMember}
+            {/* Submit Button */}
+            <Button 
+              type="submit" 
               className="w-full"
-              data-testid="button-submit-loan"
+              disabled={submitLoanMutation.isPending}
+              data-testid="button-submit"
             >
               {submitLoanMutation.isPending ? "Submitting..." : "Submit Loan Application"}
             </Button>
