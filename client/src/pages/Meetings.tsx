@@ -3,12 +3,23 @@ import { useState } from "react";
 import { AdminSidebar } from "@/components/AdminSidebar";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Calendar, Clock, MapPin } from "lucide-react";
-import { format } from "date-fns";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { ScheduleMeetingModal } from "@/components/modals/ScheduleMeetingModal";
+import { MeetingCountdown } from "@/components/MeetingCountdown";
+import { useAuth } from "@/hooks/useAuth";
+import { Plus, Calendar, Clock, MapPin, Bell, Users, AlertCircle } from "lucide-react";
+import { format, isToday, isTomorrow, differenceInHours } from "date-fns";
 
 export default function Meetings() {
   const [selectedGroupId, setSelectedGroupId] = useState<string>("all");
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
+  const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
+  const { user } = useAuth();
+
+  // Check if user can schedule meetings
+  const canScheduleMeetings = user?.role === 'admin' || 
+    ['chairman', 'secretary', 'finance'].includes(user?.groupRole || '');
 
   const { data: meetings = [], isLoading: meetingsLoading } = useQuery({
     queryKey: ["/api/meetings"],
@@ -28,6 +39,14 @@ export default function Meetings() {
     const matchesStatus = selectedStatus === "all" || meeting.status === selectedStatus;
     return matchesGroup && matchesStatus;
   });
+
+  // Separate upcoming meetings with priority for notifications
+  const upcomingMeetingsWithAlarms = meetings.filter((meeting: any) => {
+    const meetingDate = new Date(meeting.date);
+    const now = new Date();
+    const hoursUntil = differenceInHours(meetingDate, now);
+    return meetingDate > now && meeting.status === 'scheduled' && hoursUntil <= 24;
+  }).sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
   const getStatusStyle = (status: string) => {
     const styles = {
@@ -74,16 +93,57 @@ export default function Meetings() {
               <h2 className="text-2xl font-bold text-foreground" data-testid="page-title">Meetings</h2>
               <p className="text-muted-foreground">Schedule and manage group meetings</p>
             </div>
-            <Button data-testid="button-schedule-meeting">
-              <Plus className="w-4 h-4 mr-2" />
-              Schedule Meeting
-            </Button>
+            {canScheduleMeetings ? (
+              <Button 
+                onClick={() => setIsScheduleModalOpen(true)}
+                data-testid="button-schedule-meeting"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Schedule Meeting
+              </Button>
+            ) : (
+              <Badge variant="secondary">
+                <Users className="w-3 h-3 mr-1" />
+                View Only Access
+              </Badge>
+            )}
           </div>
         </header>
 
         {/* Content */}
         <div className="p-6 overflow-y-auto h-[calc(100vh-88px)]">
-          {/* Upcoming Meetings Card */}
+          {/* Meeting Alarms - Priority Notifications */}
+          {upcomingMeetingsWithAlarms.length > 0 && (
+            <div className="bg-gradient-to-r from-orange-50 to-yellow-50 dark:from-orange-950/20 dark:to-yellow-950/20 rounded-lg border border-orange-200 dark:border-orange-800 p-6 mb-6">
+              <div className="flex items-center gap-3 mb-4">
+                <Bell className="h-6 w-6 text-orange-600 animate-bounce" />
+                <h3 className="text-lg font-semibold text-orange-800 dark:text-orange-200">
+                  🔔 Meeting Alerts & Countdowns
+                </h3>
+                <Badge variant="destructive" className="animate-pulse">
+                  {upcomingMeetingsWithAlarms.length} URGENT
+                </Badge>
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {upcomingMeetingsWithAlarms.slice(0, 2).map((meeting: any) => (
+                  <MeetingCountdown
+                    key={meeting.id}
+                    meeting={meeting}
+                    groupName={getGroupName(meeting.groupId)}
+                  />
+                ))}
+              </div>
+              {upcomingMeetingsWithAlarms.length > 2 && (
+                <div className="mt-4 text-center">
+                  <p className="text-sm text-orange-700 dark:text-orange-300">
+                    And {upcomingMeetingsWithAlarms.length - 2} more meetings within 24 hours...
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Regular Upcoming Meetings Card */}
           {upcomingMeetings.length > 0 && (
             <div className="bg-card rounded-lg border border-border p-6 mb-6">
               <h3 className="text-lg font-semibold text-foreground mb-4">Upcoming Meetings</h3>
@@ -242,6 +302,12 @@ export default function Meetings() {
           )}
         </div>
       </main>
+
+      {/* Schedule Meeting Modal */}
+      <ScheduleMeetingModal
+        open={isScheduleModalOpen}
+        onOpenChange={setIsScheduleModalOpen}
+      />
     </div>
   );
 }

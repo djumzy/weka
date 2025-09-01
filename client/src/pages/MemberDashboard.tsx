@@ -12,6 +12,7 @@ import { formatCurrency } from "@/lib/utils";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { AdminSidebar } from "@/components/AdminSidebar";
 import { OfflineIndicator } from "@/components/OfflineIndicator";
+import { MeetingNotifications } from "@/components/MeetingNotifications";
 import { 
   Users, 
   DollarSign, 
@@ -244,6 +245,9 @@ export default function MemberDashboard() {
           </Button>
         </div>
       </div>
+
+      {/* Meeting Notifications - Priority Alerts */}
+      <MeetingNotifications groupId={member.groupId} memberId={member.id} />
 
       {/* Personal Stats - Mobile Responsive */}
       <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 md:gap-4">

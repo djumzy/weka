@@ -142,6 +142,8 @@ export const meetings = pgTable("meetings", {
   minutes: text("minutes"),
   attendees: text("attendees").array(), // Array of member IDs who attended
   status: varchar("status", { length: 20 }).notNull().default('scheduled'), // scheduled, completed, cancelled
+  notificationSent24h: boolean("notification_sent_24h").notNull().default(false), // 24 hour reminder sent
+  notificationSentNow: boolean("notification_sent_now").notNull().default(false), // Meeting time notification sent
   createdBy: varchar("created_by").notNull().references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
