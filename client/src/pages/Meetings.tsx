@@ -231,8 +231,14 @@ export default function Meetings() {
                   : "Schedule your first group meeting to get started"
                 }
               </p>
-              {selectedGroupId === "all" && selectedStatus === "all" && (
-                <Button data-testid="button-first-meeting">
+              {selectedGroupId === "all" && selectedStatus === "all" && canScheduleMeetings && (
+                <Button 
+                  onClick={() => {
+                    console.log('Schedule First Meeting button clicked');
+                    setIsScheduleModalOpen(true);
+                  }}
+                  data-testid="button-first-meeting"
+                >
                   <Plus className="w-4 h-4 mr-2" />
                   Schedule First Meeting
                 </Button>
