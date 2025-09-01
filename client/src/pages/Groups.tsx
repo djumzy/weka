@@ -3,13 +3,16 @@ import { useState } from "react";
 import { AdminSidebar } from "@/components/AdminSidebar";
 import { GroupCard } from "@/components/GroupCard";
 import { NewGroupModal } from "@/components/modals/NewGroupModal";
+import { EditGroupModal } from "@/components/modals/EditGroupModal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, Edit } from "lucide-react";
+import type { Group } from "@shared/schema";
 
 export default function Groups() {
   const [searchTerm, setSearchTerm] = useState("");
   const [isNewGroupModalOpen, setIsNewGroupModalOpen] = useState(false);
+  const [editingGroup, setEditingGroup] = useState<Group | null>(null);
 
   const { data: groups = [], isLoading } = useQuery({
     queryKey: ["/api/groups"],
@@ -112,6 +115,7 @@ export default function Groups() {
                     group={group}
                     memberCount={stats.memberCount}
                     totalSavings={stats.totalSavings}
+                    onEditClick={(group) => setEditingGroup(group)}
                   />
                 );
               })}
@@ -124,6 +128,14 @@ export default function Groups() {
         open={isNewGroupModalOpen}
         onOpenChange={setIsNewGroupModalOpen}
       />
+      
+      {editingGroup && (
+        <EditGroupModal
+          open={!!editingGroup}
+          onOpenChange={(open) => !open && setEditingGroup(null)}
+          group={editingGroup}
+        />
+      )}
     </div>
   );
 }

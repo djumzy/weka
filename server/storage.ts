@@ -264,16 +264,33 @@ export class DatabaseStorage implements IStorage {
   async createTransaction(transaction: InsertTransaction): Promise<Transaction> {
     const [newTransaction] = await db.insert(transactions).values(transaction).returning();
     
-    // Update member's savings balance
+    // Update member's savings balance and shares
     const member = await this.getMember(transaction.memberId);
     if (member) {
+      const group = await this.getGroup(member.groupId);
       let newBalance = parseFloat(member.savingsBalance);
+      let newShares = member.totalShares;
+      
       if (transaction.type === 'deposit') {
         newBalance += parseFloat(transaction.amount);
+        // Calculate shares based on group's saving per share value
+        if (group && group.savingPerShare) {
+          const shareValue = parseFloat(group.savingPerShare);
+          newShares = Math.floor(newBalance / shareValue);
+        }
       } else if (transaction.type === 'withdrawal') {
         newBalance -= parseFloat(transaction.amount);
+        // Recalculate shares after withdrawal
+        if (group && group.savingPerShare) {
+          const shareValue = parseFloat(group.savingPerShare);
+          newShares = Math.floor(newBalance / shareValue);
+        }
       }
-      await this.updateMember(transaction.memberId, { savingsBalance: newBalance.toFixed(2) });
+      
+      await this.updateMember(transaction.memberId, { 
+        savingsBalance: newBalance.toFixed(2),
+        totalShares: newShares
+      });
     }
 
     return newTransaction;
@@ -537,19 +554,13 @@ export class DatabaseStorage implements IStorage {
     const allLoans = await db.select().from(loans);
     const totalLoansGiven = allLoans.reduce((total, loan) => total + parseFloat(loan.amount || '0'), 0);
     
-    // Calculate total interest: Sum of interest amounts based on current loans and group rates
-    const groupsWithLoans = await db.select({
-      groupId: loans.groupId,
-      loanAmount: loans.amount,
-      interestRate: groups.interestRate
-    }).from(loans)
-    .innerJoin(groups, eq(loans.groupId, groups.id))
-    .where(eq(loans.status, 'active'));
+    // Calculate total interest: Sum of ALL interest amounts from ALL loans (active, completed, etc.) across ALL groups for admin
+    const allLoansWithInterest = await db.select({
+      interestAmount: loans.interestAmount
+    }).from(loans);
     
-    const totalInterest = groupsWithLoans.reduce((total, item) => {
-      const loanAmount = parseFloat(item.loanAmount || '0');
-      const rate = parseFloat(item.interestRate || '0');
-      return total + (loanAmount * rate / 100); // Calculate interest based on loan amount and group rate
+    const totalInterest = allLoansWithInterest.reduce((total, loan) => {
+      return total + parseFloat(loan.interestAmount || '0');
     }, 0);
 
     return {

@@ -2,7 +2,7 @@ import { Group } from "@shared/schema";
 import { format } from "date-fns";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Eye } from "lucide-react";
+import { Eye, Edit } from "lucide-react";
 
 interface GroupCardProps {
   group: Group;
@@ -10,9 +10,10 @@ interface GroupCardProps {
   totalSavings: number;
   nextMeeting?: Date;
   onViewClick?: (group: Group) => void;
+  onEditClick?: (group: Group) => void;
 }
 
-export function GroupCard({ group, memberCount, totalSavings, nextMeeting, onViewClick }: GroupCardProps) {
+export function GroupCard({ group, memberCount, totalSavings, nextMeeting, onViewClick, onEditClick }: GroupCardProps) {
   const initials = group.name
     .split(' ')
     .map(word => word[0])
@@ -55,22 +56,40 @@ export function GroupCard({ group, memberCount, totalSavings, nextMeeting, onVie
           )}
         </div>
         
-        {onViewClick && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              onViewClick(group);
-            }}
-            className="flex items-center gap-1"
-            data-testid={`view-group-${group.id}`}
-          >
-            <Eye className="h-4 w-4" />
-            View
-          </Button>
-        )}
+        <div className="flex gap-2">
+          {onEditClick && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onEditClick(group);
+              }}
+              className="flex items-center gap-1"
+              data-testid={`edit-group-${group.id}`}
+            >
+              <Edit className="h-4 w-4" />
+              Edit
+            </Button>
+          )}
+          {onViewClick && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onViewClick(group);
+              }}
+              className="flex items-center gap-1"
+              data-testid={`view-group-${group.id}`}
+            >
+              <Eye className="h-4 w-4" />
+              View
+            </Button>
+          )}
+        </div>
       </div>
     </div>
   );
