@@ -7,11 +7,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AdminSidebar } from "@/components/AdminSidebar";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Users, UserCheck, UserX, QrCode } from "lucide-react";
+import { Plus, Users, UserCheck, UserX, QrCode, Eye, Edit, Save, X } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -29,8 +30,26 @@ const createUserSchema = z.object({
 
 type CreateUserData = z.infer<typeof createUserSchema>;
 
+// Schema for editing users (similar to create but with ID)
+const editUserSchema = z.object({
+  id: z.string(),
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
+  phone: z.string().min(10, "Phone number must be at least 10 digits"),
+  email: z.string().email().optional().or(z.literal("")),
+  role: z.enum(["admin", "field_monitor", "field_attendant"]),
+  location: z.string().optional(),
+  userId: z.string().min(1, "User ID is required"),
+  isActive: z.boolean(),
+});
+
+type EditUserData = z.infer<typeof editUserSchema>;
+
 export default function UserManagement() {
   const [activeTab, setActiveTab] = useState("users");
+  const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [isUserDetailsOpen, setIsUserDetailsOpen] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
   const { toast } = useToast();
 
   const { register, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm<CreateUserData>({
@@ -39,6 +58,17 @@ export default function UserManagement() {
       role: "field_attendant",
       pin: "",
     },
+  });
+
+  // Edit user form
+  const { 
+    register: editRegister, 
+    handleSubmit: editHandleSubmit, 
+    reset: editReset, 
+    setValue: editSetValue, 
+    formState: { errors: editErrors } 
+  } = useForm<EditUserData>({
+    resolver: zodResolver(editUserSchema),
   });
 
   const { data: users = [] } = useQuery({
@@ -57,6 +87,28 @@ export default function UserManagement() {
       toast({
         title: "Success",
         description: "User created successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updateUserMutation = useMutation({
+    mutationFn: async (userData: EditUserData) => {
+      const response = await apiRequest("PUT", `/api/users/${userData.id}`, userData);
+      return await response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      setIsEditMode(false);
+      toast({
+        title: "Success",
+        description: "User updated successfully",
       });
     },
     onError: (error: Error) => {
@@ -89,6 +141,38 @@ export default function UserManagement() {
       data.userId = generateRandomUserId();
     }
     createUserMutation.mutate(data);
+  };
+
+  const onEditSubmit = (data: EditUserData) => {
+    updateUserMutation.mutate(data);
+  };
+
+  const openUserDetails = (user: any) => {
+    setSelectedUser(user);
+    setIsUserDetailsOpen(true);
+    setIsEditMode(false);
+    // Populate edit form with user data
+    editSetValue("id", user.id);
+    editSetValue("firstName", user.firstName);
+    editSetValue("lastName", user.lastName);
+    editSetValue("phone", user.phone);
+    editSetValue("email", user.email || "");
+    editSetValue("role", user.role);
+    editSetValue("location", user.location || "");
+    editSetValue("userId", user.userId);
+    editSetValue("isActive", user.isActive);
+  };
+
+  const startEditing = () => {
+    setIsEditMode(true);
+  };
+
+  const cancelEditing = () => {
+    setIsEditMode(false);
+    // Reset form to original values
+    if (selectedUser) {
+      openUserDetails(selectedUser);
+    }
   };
 
   const getRoleBadgeColor = (role: string) => {
@@ -150,7 +234,12 @@ export default function UserManagement() {
                     </TableHeader>
                     <TableBody>
                       {users.map((user: any) => (
-                        <TableRow key={user.id}>
+                        <TableRow 
+                          key={user.id} 
+                          className="cursor-pointer hover:bg-muted/50"
+                          onClick={() => openUserDetails(user)}
+                          data-testid={`user-row-${user.userId}`}
+                        >
                           <TableCell className="font-mono">{user.userId}</TableCell>
                           <TableCell>{`${user.firstName} ${user.lastName}`}</TableCell>
                           <TableCell>{user.phone}</TableCell>
@@ -174,10 +263,33 @@ export default function UserManagement() {
                             )}
                           </TableCell>
                           <TableCell>
-                            <Button size="sm" variant="outline">
-                              <QrCode className="w-4 h-4 mr-1" />
-                              Barcode
-                            </Button>
+                            <div className="flex items-center gap-2">
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openUserDetails(user);
+                                }}
+                                data-testid={`button-view-user-${user.userId}`}
+                              >
+                                <Eye className="w-4 h-4 mr-1" />
+                                View
+                              </Button>
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openUserDetails(user);
+                                  setTimeout(() => startEditing(), 100);
+                                }}
+                                data-testid={`button-edit-user-${user.userId}`}
+                              >
+                                <Edit className="w-4 h-4 mr-1" />
+                                Edit
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -336,6 +448,243 @@ export default function UserManagement() {
           </Tabs>
         </div>
       </main>
+
+      {/* User Details/Edit Modal */}
+      <Dialog open={isUserDetailsOpen} onOpenChange={setIsUserDetailsOpen}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Users className="w-5 h-5" />
+              {isEditMode ? "Edit User" : "User Details"}
+              {selectedUser && (
+                <Badge className={getRoleBadgeColor(selectedUser.role)} data-testid="user-detail-role-badge">
+                  {selectedUser.role.replace("_", " ").toUpperCase()}
+                </Badge>
+              )}
+            </DialogTitle>
+          </DialogHeader>
+          
+          {selectedUser && (
+            <div className="space-y-6">
+              {!isEditMode ? (
+                // View Mode
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-muted-foreground">User ID</Label>
+                    <div className="font-mono text-sm bg-muted p-2 rounded" data-testid="user-detail-id">
+                      {selectedUser.userId}
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-muted-foreground">Full Name</Label>
+                    <div className="text-sm p-2" data-testid="user-detail-name">
+                      {selectedUser.firstName} {selectedUser.lastName}
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-muted-foreground">Phone Number</Label>
+                    <div className="text-sm p-2" data-testid="user-detail-phone">
+                      {selectedUser.phone}
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-muted-foreground">Email</Label>
+                    <div className="text-sm p-2" data-testid="user-detail-email">
+                      {selectedUser.email || "Not provided"}
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-muted-foreground">Location</Label>
+                    <div className="text-sm p-2" data-testid="user-detail-location">
+                      {selectedUser.location || "Not specified"}
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-muted-foreground">Status</Label>
+                    <div className="text-sm p-2" data-testid="user-detail-status">
+                      {selectedUser.isActive ? (
+                        <Badge className="bg-green-100 text-green-800">
+                          <UserCheck className="w-3 h-3 mr-1" />
+                          Active
+                        </Badge>
+                      ) : (
+                        <Badge className="bg-red-100 text-red-800">
+                          <UserX className="w-3 h-3 mr-1" />
+                          Inactive
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                  <div className="space-y-2 md:col-span-2">
+                    <Label className="text-sm font-medium text-muted-foreground">Created</Label>
+                    <div className="text-sm p-2" data-testid="user-detail-created">
+                      {selectedUser.createdAt ? new Date(selectedUser.createdAt).toLocaleString() : "Not available"}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                // Edit Mode
+                <form onSubmit={editHandleSubmit(onEditSubmit)} className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="editFirstName">First Name</Label>
+                      <Input
+                        id="editFirstName"
+                        {...editRegister("firstName")}
+                        data-testid="input-edit-first-name"
+                      />
+                      {editErrors.firstName && (
+                        <p className="text-sm text-red-600">{editErrors.firstName.message}</p>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="editLastName">Last Name</Label>
+                      <Input
+                        id="editLastName"
+                        {...editRegister("lastName")}
+                        data-testid="input-edit-last-name"
+                      />
+                      {editErrors.lastName && (
+                        <p className="text-sm text-red-600">{editErrors.lastName.message}</p>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="editPhone">Phone Number</Label>
+                      <Input
+                        id="editPhone"
+                        type="tel"
+                        {...editRegister("phone")}
+                        data-testid="input-edit-phone"
+                      />
+                      {editErrors.phone && (
+                        <p className="text-sm text-red-600">{editErrors.phone.message}</p>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="editEmail">Email</Label>
+                      <Input
+                        id="editEmail"
+                        type="email"
+                        {...editRegister("email")}
+                        data-testid="input-edit-email"
+                      />
+                      {editErrors.email && (
+                        <p className="text-sm text-red-600">{editErrors.email.message}</p>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="editRole">Role</Label>
+                      <Select onValueChange={(value) => editSetValue("role", value as any)}>
+                        <SelectTrigger data-testid="select-edit-role">
+                          <SelectValue placeholder={selectedUser.role.replace("_", " ").toUpperCase()} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="admin">Admin</SelectItem>
+                          <SelectItem value="field_monitor">Field Monitor</SelectItem>
+                          <SelectItem value="field_attendant">Field Attendant</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      {editErrors.role && (
+                        <p className="text-sm text-red-600">{editErrors.role.message}</p>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="editLocation">Location</Label>
+                      <Input
+                        id="editLocation"
+                        {...editRegister("location")}
+                        data-testid="input-edit-location"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="editUserId">User ID</Label>
+                      <Input
+                        id="editUserId"
+                        {...editRegister("userId")}
+                        className="font-mono"
+                        data-testid="input-edit-user-id"
+                      />
+                      {editErrors.userId && (
+                        <p className="text-sm text-red-600">{editErrors.userId.message}</p>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Status</Label>
+                      <div className="flex items-center space-x-4">
+                        <label className="flex items-center space-x-2">
+                          <input 
+                            type="radio" 
+                            {...editRegister("isActive")} 
+                            value="true" 
+                            defaultChecked={selectedUser.isActive}
+                            data-testid="radio-edit-active"
+                          />
+                          <span className="text-sm">Active</span>
+                        </label>
+                        <label className="flex items-center space-x-2">
+                          <input 
+                            type="radio" 
+                            {...editRegister("isActive")} 
+                            value="false" 
+                            defaultChecked={!selectedUser.isActive}
+                            data-testid="radio-edit-inactive"
+                          />
+                          <span className="text-sm">Inactive</span>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                </form>
+              )}
+
+              {/* Modal Actions */}
+              <div className="flex justify-between">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsUserDetailsOpen(false)}
+                  data-testid="button-close-user-details"
+                >
+                  Close
+                </Button>
+                <div className="flex gap-2">
+                  {isEditMode ? (
+                    <>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={cancelEditing}
+                        data-testid="button-cancel-edit"
+                      >
+                        <X className="w-4 h-4 mr-1" />
+                        Cancel
+                      </Button>
+                      <Button
+                        type="submit"
+                        onClick={editHandleSubmit(onEditSubmit)}
+                        disabled={updateUserMutation.isPending}
+                        data-testid="button-save-user"
+                      >
+                        <Save className="w-4 h-4 mr-1" />
+                        {updateUserMutation.isPending ? "Saving..." : "Save Changes"}
+                      </Button>
+                    </>
+                  ) : (
+                    <Button
+                      type="button"
+                      onClick={startEditing}
+                      data-testid="button-start-edit"
+                    >
+                      <Edit className="w-4 h-4 mr-1" />
+                      Edit User
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

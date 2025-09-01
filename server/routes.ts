@@ -107,6 +107,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.put('/api/users/:id', isAuthenticated, requireRole(['admin']), async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      
+      // Create update schema that excludes pin and other sensitive fields
+      const updateUserSchema = insertUserSchema.omit({
+        pin: true,
+        assignedBy: true,
+      }).partial().extend({
+        id: z.string(),
+      });
+      
+      const updateData = updateUserSchema.parse({
+        ...req.body,
+        id,
+      });
+      
+      const updatedUser = await storage.updateUser(id, updateData);
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Remove PIN from response
+      const { pin, ...safeUser } = updatedUser;
+      res.json(safeUser);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid user data", errors: error.errors });
+      } else {
+        console.error("Error updating user:", error);
+        res.status(500).json({ message: "Failed to update user" });
+      }
+    }
+  });
+
   // Dashboard routes
   app.get('/api/dashboard/stats', isAuthenticated, async (req, res) => {
     try {
