@@ -34,6 +34,7 @@ export interface IStorage {
   getUserByBarcodeData(barcodeData: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: string, updates: Partial<User>): Promise<User | undefined>;
+  deleteUser(id: string): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
 
   // Group operations
@@ -156,6 +157,14 @@ export class DatabaseStorage implements IStorage {
     const [user] = await db
       .update(users)
       .set({ ...updates, updatedAt: new Date() })
+      .where(eq(users.id, id))
+      .returning();
+    return user;
+  }
+
+  async deleteUser(id: string): Promise<User | undefined> {
+    const [user] = await db
+      .delete(users)
       .where(eq(users.id, id))
       .returning();
     return user;

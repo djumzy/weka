@@ -142,6 +142,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.delete('/api/users/:id', isAuthenticated, requireRole(['admin']), async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      
+      const deletedUser = await storage.deleteUser(id);
+      if (!deletedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      res.json({ message: "User deleted successfully", userId: deletedUser.userId });
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      res.status(500).json({ message: "Failed to delete user" });
+    }
+  });
+
+  app.post('/api/users/generate-qr', isAuthenticated, requireRole(['admin']), async (req: any, res) => {
+    try {
+      const { userId, loginData } = req.body;
+      
+      // Get user details
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Import QRCode dynamically
+      const QRCode = require('qrcode');
+      
+      // Create QR code data - contains user ID for login auto-fill
+      const qrData = JSON.stringify({
+        type: 'weka_login',
+        userId: user.userId,
+        userName: `${user.firstName} ${user.lastName}`,
+        timestamp: Date.now(),
+        version: '1.0'
+      });
+
+      // Generate QR code as data URL
+      const qrCodeDataUrl = await QRCode.toDataURL(qrData, {
+        errorCorrectionLevel: 'M',
+        type: 'image/png',
+        quality: 0.92,
+        margin: 1,
+        color: {
+          dark: '#000000',
+          light: '#FFFFFF'
+        },
+        width: 256
+      });
+
+      res.json({ 
+        qrCodeDataUrl,
+        user: {
+          id: user.id,
+          userId: user.userId,
+          name: `${user.firstName} ${user.lastName}`,
+          role: user.role
+        }
+      });
+    } catch (error) {
+      console.error("Error generating QR code:", error);
+      res.status(500).json({ message: "Failed to generate QR code" });
+    }
+  });
+
   // Dashboard routes
   app.get('/api/dashboard/stats', isAuthenticated, async (req, res) => {
     try {

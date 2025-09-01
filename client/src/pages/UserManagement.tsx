@@ -8,11 +8,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { AdminSidebar } from "@/components/AdminSidebar";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Users, UserCheck, UserX, QrCode, Eye, Edit, Save, X } from "lucide-react";
+import { Plus, Users, UserCheck, UserX, QrCode, Eye, Edit, Save, X, Trash2 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -50,6 +51,10 @@ export default function UserManagement() {
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [isUserDetailsOpen, setIsUserDetailsOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<any>(null);
+  const [isQrCodeModalOpen, setIsQrCodeModalOpen] = useState(false);
+  const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>("");
   const { toast } = useToast();
 
   const { register, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm<CreateUserData>({
@@ -120,6 +125,29 @@ export default function UserManagement() {
     },
   });
 
+  const deleteUserMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const response = await apiRequest("DELETE", `/api/users/${userId}`);
+      return await response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      setIsDeleteDialogOpen(false);
+      setUserToDelete(null);
+      toast({
+        title: "Success",
+        description: "User deleted successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const generateRandomUserId = () => {
     const randomNum = Math.floor(100000 + Math.random() * 900000);
     return `TD${randomNum}`;
@@ -172,6 +200,46 @@ export default function UserManagement() {
     // Reset form to original values
     if (selectedUser) {
       openUserDetails(selectedUser);
+    }
+  };
+
+  const openDeleteDialog = (user: any) => {
+    setUserToDelete(user);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (userToDelete) {
+      deleteUserMutation.mutate(userToDelete.id);
+    }
+  };
+
+  const generateQRCode = async (user: any) => {
+    try {
+      // Generate QR code with user credentials for login
+      const loginData = {
+        userId: user.userId,
+        // Note: In production, you might want to generate a temporary login token
+        // For now, we'll include user ID and let them enter PIN manually
+        type: 'login',
+        timestamp: Date.now()
+      };
+
+      const response = await apiRequest("POST", "/api/users/generate-qr", {
+        userId: user.id,
+        loginData
+      });
+
+      const result = await response.json();
+      setQrCodeDataUrl(result.qrCodeDataUrl);
+      setSelectedUser(user);
+      setIsQrCodeModalOpen(true);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to generate QR code",
+        variant: "destructive",
+      });
     }
   };
 
@@ -263,7 +331,7 @@ export default function UserManagement() {
                             )}
                           </TableCell>
                           <TableCell>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-1">
                               <Button 
                                 size="sm" 
                                 variant="outline"
@@ -273,8 +341,7 @@ export default function UserManagement() {
                                 }}
                                 data-testid={`button-view-user-${user.userId}`}
                               >
-                                <Eye className="w-4 h-4 mr-1" />
-                                View
+                                <Eye className="w-4 h-4" />
                               </Button>
                               <Button 
                                 size="sm" 
@@ -286,8 +353,30 @@ export default function UserManagement() {
                                 }}
                                 data-testid={`button-edit-user-${user.userId}`}
                               >
-                                <Edit className="w-4 h-4 mr-1" />
-                                Edit
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  generateQRCode(user);
+                                }}
+                                data-testid={`button-qr-user-${user.userId}`}
+                              >
+                                <QrCode className="w-4 h-4" />
+                              </Button>
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openDeleteDialog(user);
+                                }}
+                                data-testid={`button-delete-user-${user.userId}`}
+                                className="text-red-600 hover:text-red-700"
+                              >
+                                <Trash2 className="w-4 h-4" />
                               </Button>
                             </div>
                           </TableCell>
@@ -680,6 +769,111 @@ export default function UserManagement() {
                     </Button>
                   )}
                 </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete User</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete user <strong>{userToDelete?.firstName} {userToDelete?.lastName}</strong>?
+              <br />
+              <span className="text-sm text-muted-foreground">User ID: {userToDelete?.userId}</span>
+              <br />
+              <span className="text-red-600 font-medium">This action cannot be undone.</span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel 
+              onClick={() => {
+                setIsDeleteDialogOpen(false);
+                setUserToDelete(null);
+              }}
+              data-testid="button-cancel-delete"
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              disabled={deleteUserMutation.isPending}
+              className="bg-red-600 hover:bg-red-700"
+              data-testid="button-confirm-delete"
+            >
+              {deleteUserMutation.isPending ? "Deleting..." : "Delete User"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* QR Code Modal */}
+      <Dialog open={isQrCodeModalOpen} onOpenChange={setIsQrCodeModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <QrCode className="w-5 h-5" />
+              Login QR Code
+              {selectedUser && (
+                <Badge className={getRoleBadgeColor(selectedUser.role)}>
+                  {selectedUser.role.replace("_", " ").toUpperCase()}
+                </Badge>
+              )}
+            </DialogTitle>
+          </DialogHeader>
+          
+          {selectedUser && (
+            <div className="space-y-4">
+              <div className="text-center">
+                <p className="text-sm text-muted-foreground mb-4">
+                  Scan this QR code to auto-fill login credentials for <strong>{selectedUser.firstName} {selectedUser.lastName}</strong>
+                </p>
+                
+                {qrCodeDataUrl ? (
+                  <div className="flex justify-center mb-4">
+                    <img 
+                      src={qrCodeDataUrl} 
+                      alt="Login QR Code" 
+                      className="border rounded-lg"
+                      data-testid="qr-code-image"
+                    />
+                  </div>
+                ) : (
+                  <div className="flex justify-center items-center h-48 bg-muted rounded-lg mb-4">
+                    <div className="text-center">
+                      <QrCode className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
+                      <p className="text-sm text-muted-foreground">Generating QR Code...</p>
+                    </div>
+                  </div>
+                )}
+                
+                <div className="text-xs text-muted-foreground space-y-1">
+                  <p><strong>User ID:</strong> {selectedUser.userId}</p>
+                  <p className="text-amber-600">
+                    <strong>Note:</strong> User will still need to enter their PIN after scanning
+                  </p>
+                </div>
+              </div>
+              
+              <div className="flex justify-between">
+                <Button
+                  variant="outline"
+                  onClick={() => setIsQrCodeModalOpen(false)}
+                  data-testid="button-close-qr-modal"
+                >
+                  Close
+                </Button>
+                <Button
+                  onClick={() => generateQRCode(selectedUser)}
+                  variant="outline"
+                  data-testid="button-regenerate-qr"
+                >
+                  <QrCode className="w-4 h-4 mr-1" />
+                  Regenerate
+                </Button>
               </div>
             </div>
           )}
