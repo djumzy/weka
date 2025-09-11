@@ -64,7 +64,7 @@ app.use((req, res, next) => {
   const port = parseInt(process.env.PORT || '5000', 10);
   const listenOptions: any = {
     port,
-    host: process.env.HOST || "127.0.0.1",
+    host: process.env.RENDER ? "0.0.0.0" : (process.env.HOST || "127.0.0.1"),
   };
   if (process.platform !== 'win32') {
     listenOptions.reusePort = true;
