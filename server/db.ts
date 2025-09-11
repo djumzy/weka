@@ -1,9 +1,6 @@
-import { Pool, neonConfig } from '@neondatabase/serverless';
-import { drizzle } from 'drizzle-orm/neon-serverless';
-import ws from "ws";
+﻿import { drizzle } from 'drizzle-orm/node-postgres';
+import { Pool } from 'pg';
 import * as schema from "@shared/schema";
-
-neonConfig.webSocketConstructor = ws;
 
 if (!process.env.DATABASE_URL) {
   throw new Error(
@@ -11,5 +8,12 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-export const db = drizzle({ client: pool, schema });
+// Create PostgreSQL connection pool
+// Ensure SSL for managed providers like Render
+const useSsl = /render\.com|sslmode=require/i.test(process.env.DATABASE_URL);
+const pool = new Pool({ 
+  connectionString: process.env.DATABASE_URL,
+  ssl: useSsl ? { rejectUnauthorized: false } : undefined,
+});
+
+export const db = drizzle(pool, { schema });

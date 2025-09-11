@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VSLA Management System - Admin Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+    tailwind.config = {
+        theme: {
+            extend: {
+                borderRadius: {
+                    lg: "var(--radius)",
+                    md: "calc(var(--radius) - 2px)",
+                    sm: "calc(var(--radius) - 4px)",
+                },
+                colors: {
+                    background: "var(--background)",
+                    foreground: "var(--foreground)",
+                    card: {
+                        DEFAULT: "var(--card)",
+                        foreground: "var(--card-foreground)",
+                    },
+                    popover: {
+                        DEFAULT: "var(--popover)",
+                        foreground: "var(--popover-foreground)",
+                    },
+                    primary: {
+                        DEFAULT: "var(--primary)",
+                        foreground: "var(--primary-foreground)",
+                    },
+                    secondary: {
+                        DEFAULT: "var(--secondary)",
+                        foreground: "var(--secondary-foreground)",
+                    },
+                    muted: {
+                        DEFAULT: "var(--muted)",
+                        foreground: "var(--muted-foreground)",
+                    },
+                    accent: {
+                        DEFAULT: "var(--accent)",
+                        foreground: "var(--accent-foreground)",
+                    },
+                    destructive: {
+                        DEFAULT: "var(--destructive)",
+                        foreground: "var(--destructive-foreground)",
+                    },
+                    border: "var(--border)",
+                    input: "var(--input)",
+                    ring: "var(--ring)",
+                    chart: {
+                        "1": "var(--chart-1)",
+                        "2": "var(--chart-2)",
+                        "3": "var(--chart-3)",
+                        "4": "var(--chart-4)",
+                        "5": "var(--chart-5)",
+                    }
+                },
+                fontFamily: {
+                    sans: ["var(--font-sans)"],
+                    serif: ["var(--font-serif)"],
+                    mono: ["var(--font-mono)"],
+                }
+            },
+        }
+    };
+    </script>
+    <style>
+        :root {
+            --background: hsl(210 40% 98%);
+            --foreground: hsl(222.2 84% 4.9%);
+            --card: hsl(0 0% 100%);
+            --card-foreground: hsl(222.2 84% 4.9%);
+            --popover: hsl(0 0% 100%);
+            --popover-foreground: hsl(222.2 84% 4.9%);
+            --primary: hsl(221.2 83.2% 53.3%);
+            --primary-foreground: hsl(210 40% 98%);
+            --secondary: hsl(210 40% 96%);
+            --secondary-foreground: hsl(222.2 84% 4.9%);
+            --muted: hsl(210 40% 96%);
+            --muted-foreground: hsl(215.4 16.3% 46.9%);
+            --accent: hsl(210 40% 96%);
+            --accent-foreground: hsl(222.2 84% 4.9%);
+            --destructive: hsl(0 84.2% 60.2%);
+            --destructive-foreground: hsl(210 40% 98%);
+            --border: hsl(214.3 31.8% 91.4%);
+            --input: hsl(214.3 31.8% 91.4%);
+            --ring: hsl(221.2 83.2% 53.3%);
+            --radius: 0.5rem;
+            --chart-1: hsl(12 76% 61%);
+            --chart-2: hsl(173 58% 39%);
+            --chart-3: hsl(197 37% 24%);
+            --chart-4: hsl(43 74% 66%);
+            --chart-5: hsl(27 87% 67%);
+            --font-sans: 'Inter', system-ui, sans-serif;
+        }
+
+        .dark {
+            --background: hsl(222.2 84% 4.9%);
+            --foreground: hsl(210 40% 98%);
+            --card: hsl(222.2 84% 4.9%);
+            --card-foreground: hsl(210 40% 98%);
+            --popover: hsl(222.2 84% 4.9%);
+            --popover-foreground: hsl(210 40% 98%);
+            --primary: hsl(217.2 91.2% 59.8%);
+            --primary-foreground: hsl(222.2 84% 4.9%);
+            --secondary: hsl(217.2 32.6% 17.5%);
+            --secondary-foreground: hsl(210 40% 98%);
+            --muted: hsl(217.2 32.6% 17.5%);
+            --muted-foreground: hsl(215 20.2% 65.1%);
+            --accent: hsl(217.2 32.6% 17.5%);
+            --accent-foreground: hsl(210 40% 98%);
+            --destructive: hsl(0 62.8% 30.6%);
+            --destructive-foreground: hsl(210 40% 98%);
+            --border: hsl(217.2 32.6% 17.5%);
+            --input: hsl(217.2 32.6% 17.5%);
+            --ring: hsl(224.3 76.3% 94.1%);
+        }
+    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/heroicons@2.0.18/24/outline/index.js" type="module"></script>
+</head>
+<body class="bg-background font-sans antialiased">
+    <!-- @COMPONENT: AdminDashboardLayout -->
+    <div class="min-h-screen flex">
+        
+        <!-- @COMPONENT: Sidebar -->
+        <aside class="w-64 bg-card border-r border-border flex flex-col">
+            <!-- @COMPONENT: SidebarHeader -->
+            <div class="p-6 border-b border-border">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-primary-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <h1 class="text-lg font-semibold text-foreground">VSLA Admin</h1>
+                        <p class="text-sm text-muted-foreground" data-mock="true">Community Bank</p>
+                    </div>
+                </div>
+            </div>
+            <!-- @END_COMPONENT: SidebarHeader -->
+
+            <!-- @COMPONENT: SidebarNavigation -->
+            <nav class="flex-1 p-4 space-y-2">
+                <a href="#" class="flex items-center space-x-3 px-3 py-2 rounded-md bg-primary text-primary-foreground font-medium" data-implementation="Should highlight current active route">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m8 5 4-4 4 4"></path>
+                    </svg>
+                    <span>Dashboard</span>
+                </a>
+
+                <a href="#" class="flex items-center space-x-3 px-3 py-2 rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                    </svg>
+                    <span>Groups</span>
+                </a>
+
+                <a href="#" class="flex items-center space-x-3 px-3 py-2 rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                    </svg>
+                    <span>Members</span>
+                </a>
+
+                <a href="#" class="flex items-center space-x-3 px-3 py-2 rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+                    </svg>
+                    <span>Transactions</span>
+                </a>
+
+                <a href="#" class="flex items-center space-x-3 px-3 py-2 rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    <span>Loans</span>
+                </a>
+
+                <a href="#" class="flex items-center space-x-3 px-3 py-2 rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3a2 2 0 012-2h4a2 2 0 012 2v4m-6 0V6a2 2 0 012-2h4a2 2 0 012 2v1m-6 0h8m-9 5a2 2 0 002 2h10a2 2 0 002-2M9 7h6"></path>
+                    </svg>
+                    <span>Meetings</span>
+                </a>
+
+                <a href="#" class="flex items-center space-x-3 px-3 py-2 rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                    </svg>
+                    <span>Reports</span>
+                </a>
+            </nav>
+            <!-- @END_COMPONENT: SidebarNavigation -->
+
+            <!-- @COMPONENT: SidebarFooter -->
+            <div class="p-4 border-t border-border">
+                <div class="flex items-center space-x-3">
+                    <div class="w-8 h-8 bg-secondary rounded-full flex items-center justify-center">
+                        <span class="text-xs font-medium text-secondary-foreground" data-mock="true">JD</span>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-medium text-foreground truncate" data-mock="true">John Doe</p>
+                        <p class="text-xs text-muted-foreground" data-mock="true">Administrator</p>
+                    </div>
+                    <button class="p-1 rounded hover:bg-accent" data-event="click:logout">
+                        <svg class="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <!-- @END_COMPONENT: SidebarFooter -->
+        </aside>
+        <!-- @END_COMPONENT: Sidebar -->
+
+        <!-- @COMPONENT: MainContent -->
+        <main class="flex-1 overflow-hidden">
+            <!-- @COMPONENT: TopBar -->
+            <header class="bg-card border-b border-border px-6 py-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="text-2xl font-bold text-foreground">Dashboard</h2>
+                        <p class="text-muted-foreground">Welcome back! Here's an overview of your VSLA groups.</p>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <!-- @COMPONENT: GroupSelector -->
+                        <select class="px-3 py-2 bg-background border border-border rounded-md text-sm font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-ring" data-implementation="Should populate with actual groups">
+                            <option data-mock="true">All Groups</option>
+                            <option data-mock="true">Women's Group A</option>
+                            <option data-mock="true">Youth Savings Circle</option>
+                            <option data-mock="true">Market Vendors VSLA</option>
+                        </select>
+                        <!-- @END_COMPONENT: GroupSelector -->
+
+                        <button class="px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm font-medium hover:bg-primary/90 transition-colors" data-event="click:createGroup">
+                            <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                            </svg>
+                            New Group
+                        </button>
+                    </div>
+                </div>
+            </header>
+            <!-- @END_COMPONENT: TopBar -->
+
+            <!-- @COMPONENT: DashboardContent -->
+            <div class="p-6 overflow-y-auto h-[calc(100vh-88px)]">
+                
+                <!-- @COMPONENT: StatsCards -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <div class="bg-card rounded-lg border border-border p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-muted-foreground text-sm font-medium">Total Groups</p>
+                                <p class="text-3xl font-bold text-foreground mt-2" data-bind="totalGroups">12</p>
+                            </div>
+                            <div class="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
+                                <svg class="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="flex items-center mt-4 text-sm">
+                            <span class="text-green-600 font-medium">+2</span>
+                            <span class="text-muted-foreground ml-1">this month</span>
+                        </div>
+                    </div>
+
+                    <div class="bg-card rounded-lg border border-border p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-muted-foreground text-sm font-medium">Total Members</p>
+                                <p class="text-3xl font-bold text-foreground mt-2" data-bind="totalMembers">247</p>
+                            </div>
+                            <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                                <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="flex items-center mt-4 text-sm">
+                            <span class="text-green-600 font-medium">+18</span>
+                            <span class="text-muted-foreground ml-1">this month</span>
+                        </div>
+                    </div>
+
+                    <div class="bg-card rounded-lg border border-border p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-muted-foreground text-sm font-medium">Total Savings</p>
+                                <p class="text-3xl font-bold text-foreground mt-2" data-bind="totalSavings">$45,280</p>
+                            </div>
+                            <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                                <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="flex items-center mt-4 text-sm">
+                            <span class="text-green-600 font-medium">+12.5%</span>
+                            <span class="text-muted-foreground ml-1">vs last month</span>
+                        </div>
+                    </div>
+
+                    <div class="bg-card rounded-lg border border-border p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-muted-foreground text-sm font-medium">Active Loans</p>
+                                <p class="text-3xl font-bold text-foreground mt-2" data-bind="activeLoans">23</p>
+                            </div>
+                            <div class="w-12 h-12 bg-amber-100 rounded-lg flex items-center justify-center">
+                                <svg class="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="flex items-center mt-4 text-sm">
+                            <span class="text-amber-600 font-medium">$8,450</span>
+                            <span class="text-muted-foreground ml-1">outstanding</span>
+                        </div>
+                    </div>
+                </div>
+                <!-- @END_COMPONENT: StatsCards -->
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                    <!-- @COMPONENT: RecentTransactions -->
+                    <div class="lg:col-span-2 bg-card rounded-lg border border-border">
+                        <div class="p-6 border-b border-border">
+                            <div class="flex items-center justify-between">
+                                <h3 class="text-lg font-semibold text-foreground">Recent Transactions</h3>
+                                <button class="text-sm text-primary font-medium hover:underline" data-event="click:viewAllTransactions">View All</button>
+                            </div>
+                        </div>
+                        <div class="p-0">
+                            <div class="overflow-x-auto">
+                                <table class="w-full">
+                                    <thead class="bg-muted/50">
+                                        <tr>
+                                            <th class="text-left p-4 text-sm font-medium text-muted-foreground">Date</th>
+                                            <th class="text-left p-4 text-sm font-medium text-muted-foreground">Member</th>
+                                            <th class="text-left p-4 text-sm font-medium text-muted-foreground">Type</th>
+                                            <th class="text-left p-4 text-sm font-medium text-muted-foreground">Amount</th>
+                                            <th class="text-left p-4 text-sm font-medium text-muted-foreground">Group</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- @MAP: transactions.map(transaction => ( -->
+                                        <tr class="border-b border-border hover:bg-muted/25">
+                                            <td class="p-4 text-sm text-foreground" data-mock="true">Jan 15, 2024</td>
+                                            <td class="p-4 text-sm text-foreground" data-mock="true">Sarah Johnson</td>
+                                            <td class="p-4">
+                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800" data-mock="true">Deposit</span>
+                                            </td>
+                                            <td class="p-4 text-sm font-medium text-foreground" data-mock="true">$50.00</td>
+                                            <td class="p-4 text-sm text-muted-foreground" data-mock="true">Women's Group A</td>
+                                        </tr>
+                                        <tr class="border-b border-border hover:bg-muted/25">
+                                            <td class="p-4 text-sm text-foreground" data-mock="true">Jan 15, 2024</td>
+                                            <td class="p-4 text-sm text-foreground" data-mock="true">Michael Chen</td>
+                                            <td class="p-4">
+                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800" data-mock="true">Loan Payment</span>
+                                            </td>
+                                            <td class="p-4 text-sm font-medium text-foreground" data-mock="true">$75.00</td>
+                                            <td class="p-4 text-sm text-muted-foreground" data-mock="true">Youth Savings Circle</td>
+                                        </tr>
+                                        <tr class="border-b border-border hover:bg-muted/25">
+                                            <td class="p-4 text-sm text-foreground" data-mock="true">Jan 14, 2024</td>
+                                            <td class="p-4 text-sm text-foreground" data-mock="true">Grace Mukamana</td>
+                                            <td class="p-4">
+                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800" data-mock="true">Withdrawal</span>
+                                            </td>
+                                            <td class="p-4 text-sm font-medium text-foreground" data-mock="true">$25.00</td>
+                                            <td class="p-4 text-sm text-muted-foreground" data-mock="true">Market Vendors VSLA</td>
+                                        </tr>
+                                        <tr class="border-b border-border hover:bg-muted/25">
+                                            <td class="p-4 text-sm text-foreground" data-mock="true">Jan 14, 2024</td>
+                                            <td class="p-4 text-sm text-foreground" data-mock="true">David Kimani</td>
+                                            <td class="p-4">
+                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800" data-mock="true">Loan Disbursed</span>
+                                            </td>
+                                            <td class="p-4 text-sm font-medium text-foreground" data-mock="true">$200.00</td>
+                                            <td class="p-4 text-sm text-muted-foreground" data-mock="true">Women's Group A</td>
+                                        </tr>
+                                        <!-- @END_MAP )) -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- @END_COMPONENT: RecentTransactions -->
+
+                    <!-- @COMPONENT: QuickActions -->
+                    <div class="bg-card rounded-lg border border-border p-6">
+                        <h3 class="text-lg font-semibold text-foreground mb-4">Quick Actions</h3>
+                        <div class="space-y-3">
+                            <button class="w-full flex items-center space-x-3 p-3 rounded-lg border border-border hover:bg-accent hover:text-accent-foreground transition-colors" data-event="click:addMember">
+                                <div class="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center">
+                                    <svg class="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                                    </svg>
+                                </div>
+                                <div class="text-left">
+                                    <p class="font-medium text-foreground">Add Member</p>
+                                    <p class="text-sm text-muted-foreground">Register new member</p>
+                                </div>
+                            </button>
+
+                            <button class="w-full flex items-center space-x-3 p-3 rounded-lg border border-border hover:bg-accent hover:text-accent-foreground transition-colors" data-event="click:recordTransaction">
+                                <div class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                                    <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+                                    </svg>
+                                </div>
+                                <div class="text-left">
+                                    <p class="font-medium text-foreground">Record Transaction</p>
+                                    <p class="text-sm text-muted-foreground">Log deposit or withdrawal</p>
+                                </div>
+                            </button>
+
+                            <button class="w-full flex items-center space-x-3 p-3 rounded-lg border border-border hover:bg-accent hover:text-accent-foreground transition-colors" data-event="click:processLoan">
+                                <div class="w-8 h-8 bg-amber-100 rounded-lg flex items-center justify-center">
+                                    <svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                    </svg>
+                                </div>
+                                <div class="text-left">
+                                    <p class="font-medium text-foreground">Process Loan</p>
+                                    <p class="text-sm text-muted-foreground">Review loan applications</p>
+                                </div>
+                            </button>
+
+                            <button class="w-full flex items-center space-x-3 p-3 rounded-lg border border-border hover:bg-accent hover:text-accent-foreground transition-colors" data-event="click:scheduleMeeting">
+                                <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                                    <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3a2 2 0 012-2h4a2 2 0 012 2v4m-6 0V6a2 2 0 012-2h4a2 2 0 012 2v1m-6 0h8m-9 5a2 2 0 002 2h10a2 2 0 002-2M9 7h6"></path>
+                                    </svg>
+                                </div>
+                                <div class="text-left">
+                                    <p class="font-medium text-foreground">Schedule Meeting</p>
+                                    <p class="text-sm text-muted-foreground">Plan group meeting</p>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+                    <!-- @END_COMPONENT: QuickActions -->
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- @COMPONENT: GroupOverview -->
+                    <div class="bg-card rounded-lg border border-border">
+                        <div class="p-6 border-b border-border">
+                            <h3 class="text-lg font-semibold text-foreground">Group Overview</h3>
+                        </div>
+                        <div class="p-6">
+                            <div class="space-y-4">
+                                <!-- @MAP: groups.map(group => ( -->
+                                <div class="flex items-center justify-between p-4 rounded-lg border border-border hover:bg-muted/25 transition-colors">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+                                            <span class="text-sm font-semibold text-primary" data-mock="true">WA</span>
+                                        </div>
+                                        <div>
+                                            <p class="font-medium text-foreground" data-mock="true">Women's Group A</p>
+                                            <p class="text-sm text-muted-foreground" data-mock="true">24 members • $12,450 total savings</p>
+                                        </div>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="text-sm font-medium text-green-600" data-mock="true">Active</p>
+                                        <p class="text-xs text-muted-foreground" data-mock="true">Next meeting: Jan 20</p>
+                                    </div>
+                                </div>
+
+                                <div class="flex items-center justify-between p-4 rounded-lg border border-border hover:bg-muted/25 transition-colors">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                                            <span class="text-sm font-semibold text-blue-600" data-mock="true">YS</span>
+                                        </div>
+                                        <div>
+                                            <p class="font-medium text-foreground" data-mock="true">Youth Savings Circle</p>
+                                            <p class="text-sm text-muted-foreground" data-mock="true">18 members • $8,220 total savings</p>
+                                        </div>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="text-sm font-medium text-green-600" data-mock="true">Active</p>
+                                        <p class="text-xs text-muted-foreground" data-mock="true">Next meeting: Jan 22</p>
+                                    </div>
+                                </div>
+
+                                <div class="flex items-center justify-between p-4 rounded-lg border border-border hover:bg-muted/25 transition-colors">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                                            <span class="text-sm font-semibold text-green-600" data-mock="true">MV</span>
+                                        </div>
+                                        <div>
+                                            <p class="font-medium text-foreground" data-mock="true">Market Vendors VSLA</p>
+                                            <p class="text-sm text-muted-foreground" data-mock="true">31 members • $18,640 total savings</p>
+                                        </div>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="text-sm font-medium text-green-600" data-mock="true">Active</p>
+                                        <p class="text-xs text-muted-foreground" data-mock="true">Next meeting: Jan 19</p>
+                                    </div>
+                                </div>
+                                <!-- @END_MAP )) -->
+                            </div>
+                        </div>
+                    </div>
+                    <!-- @END_COMPONENT: GroupOverview -->
+
+                    <!-- @COMPONENT: PendingActions -->
+                    <div class="bg-card rounded-lg border border-border">
+                        <div class="p-6 border-b border-border">
+                            <h3 class="text-lg font-semibold text-foreground">Pending Actions</h3>
+                        </div>
+                        <div class="p-6">
+                            <div class="space-y-4">
+                                <!-- @MAP: pendingActions.map(action => ( -->
+                                <div class="p-4 rounded-lg border border-amber-200 bg-amber-50">
+                                    <div class="flex items-start justify-between">
+                                        <div class="flex items-start space-x-3">
+                                            <div class="w-8 h-8 bg-amber-100 rounded-lg flex items-center justify-center mt-0.5">
+                                                <svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                                </svg>
+                                            </div>
+                                            <div>
+                                                <p class="font-medium text-foreground" data-mock="true">Loan Application Review</p>
+                                                <p class="text-sm text-muted-foreground" data-mock="true">Sarah Johnson - $300 loan request</p>
+                                                <p class="text-xs text-muted-foreground mt-1" data-mock="true">Submitted 2 days ago</p>
+                                            </div>
+                                        </div>
+                                        <button class="text-sm text-primary font-medium hover:underline" data-event="click:reviewLoan">Review</button>
+                                    </div>
+                                </div>
+
+                                <div class="p-4 rounded-lg border border-blue-200 bg-blue-50">
+                                    <div class="flex items-start justify-between">
+                                        <div class="flex items-start space-x-3">
+                                            <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mt-0.5">
+                                                <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                                                </svg>
+                                            </div>
+                                            <div>
+                                                <p class="font-medium text-foreground" data-mock="true">Member Registration</p>
+                                                <p class="text-sm text-muted-foreground" data-mock="true">3 new member applications pending</p>
+                                                <p class="text-xs text-muted-foreground mt-1" data-mock="true">For Women's Group A</p>
+                                            </div>
+                                        </div>
+                                        <button class="text-sm text-primary font-medium hover:underline" data-event="click:reviewMembers">Review</button>
+                                    </div>
+                                </div>
+
+                                <div class="p-4 rounded-lg border border-green-200 bg-green-50">
+                                    <div class="flex items-start justify-between">
+                                        <div class="flex items-start space-x-3">
+                                            <div class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center mt-0.5">
+                                                <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3a2 2 0 012-2h4a2 2 0 012 2v4m-6 0V6a2 2 0 012-2h4a2 2 0 012 2v1m-6 0h8m-9 5a2 2 0 002 2h10a2 2 0 002-2M9 7h6"></path>
+                                                </svg>
+                                            </div>
+                                            <div>
+                                                <p class="font-medium text-foreground" data-mock="true">Meeting Minutes</p>
+                                                <p class="text-sm text-muted-foreground" data-mock="true">Youth Savings Circle meeting awaiting approval</p>
+                                                <p class="text-xs text-muted-foreground mt-1" data-mock="true">Meeting held Jan 15, 2024</p>
+                                            </div>
+                                        </div>
+                                        <button class="text-sm text-primary font-medium hover:underline" data-event="click:reviewMinutes">Review</button>
+                                    </div>
+                                </div>
+                                <!-- @END_MAP )) -->
+                            </div>
+                        </div>
+                    </div>
+                    <!-- @END_COMPONENT: PendingActions -->
+                </div>
+            </div>
+            <!-- @END_COMPONENT: DashboardContent -->
+        </main>
+        <!-- @END_COMPONENT: MainContent -->
+    </div>
+    <!-- @END_COMPONENT: AdminDashboardLayout -->
+
+    <!-- @COMPONENT: NewGroupModal (Hidden by default) -->
+    <div id="newGroupModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" data-implementation="Should be controlled by state management">
+        <div class="bg-card rounded-lg border border-border p-6 w-full max-w-md mx-4">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold text-foreground">Create New Group</h3>
+                <button class="text-muted-foreground hover:text-foreground" data-event="click:closeModal">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            <form class="space-y-4" data-implementation="Should handle form submission and validation">
+                <div>
+                    <label class="block text-sm font-medium text-foreground mb-2">Group Name</label>
+                    <input type="text" class="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring" placeholder="Enter group name" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-foreground mb-2">Description</label>
+                    <textarea class="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring" rows="3" placeholder="Brief description of the group"></textarea>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-foreground mb-2">Meeting Frequency</label>
+                        <select class="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring">
+                            <option>Weekly</option>
+                            <option>Bi-weekly</option>
+                            <option>Monthly</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-foreground mb-2">Max Members</label>
+                        <input type="number" class="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring" placeholder="30" min="5" max="50">
+                    </div>
+                </div>
+                <div class="flex space-x-3 pt-4">
+                    <button type="button" class="flex-1 px-4 py-2 border border-border rounded-md text-foreground hover:bg-accent transition-colors" data-event="click:closeModal">Cancel</button>
+                    <button type="submit" class="flex-1 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors">Create Group</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <!-- @END_COMPONENT: NewGroupModal -->
+
+    <script>
+        // TODO: Implement actual functionality, state management, and API calls
+        (function() {
+            // Simple modal handling for demonstration
+            const newGroupButton = document.querySelector('[data-event="click:createGroup"]');
+            const modal = document.getElementById('newGroupModal');
+            const closeModalButtons = document.querySelectorAll('[data-event="click:closeModal"]');
+
+            if (newGroupButton && modal) {
+                newGroupButton.addEventListener('click', () => {
+                    modal.classList.remove('hidden');
+                    modal.classList.add('flex');
+                });
+            }
+
+            closeModalButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    modal.classList.add('hidden');
+                    modal.classList.remove('flex');
+                });
+            });
+
+            // Click outside to close
+            modal?.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.classList.add('hidden');
+                    modal.classList.remove('flex');
+                }
+            });
+
+            // Simulate loading states and interactions
+            document.addEventListener('click', (e) => {
+                const target = e.target.closest('[data-event]');
+                if (target) {
+                    const event = target.getAttribute('data-event');
+                    console.log(`Action triggered: ${event}`);
+                    // TODO: Implement actual event handling
+                }
+            });
+        })();
+    </script>
+</body>
+</html>
