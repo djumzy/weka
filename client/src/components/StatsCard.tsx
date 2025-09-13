@@ -1,4 +1,5 @@
 import { LucideIcon } from "lucide-react";
+import { formatCurrency, formatCurrencyCompact } from "@/utils/currency";
 
 interface StatsCardProps {
   title: string;
@@ -13,6 +14,7 @@ interface StatsCardProps {
   };
   onClick?: () => void;
   className?: string;
+  isCurrency?: boolean;
 }
 
 export function StatsCard({ 
@@ -23,8 +25,18 @@ export function StatsCard({
   iconBgColor, 
   trend,
   onClick,
-  className = ""
+  className = "",
+  isCurrency = false
 }: StatsCardProps) {
+  // Format value based on type and screen size
+  const formatValue = (val: string | number) => {
+    if (isCurrency && typeof val === 'number') {
+      // Use compact format for currency on mobile
+      return formatCurrencyCompact(val);
+    }
+    return val;
+  };
+
   return (
     <div 
       className={`bg-card rounded-lg border border-border p-4 sm:p-6 ${className}`} 
@@ -34,8 +46,8 @@ export function StatsCard({
       <div className="flex items-center justify-between">
         <div className="flex-1 min-w-0">
           <p className="text-muted-foreground text-xs sm:text-sm font-medium truncate">{title}</p>
-          <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground mt-1 sm:mt-2 truncate" data-testid={`stat-value-${title.toLowerCase().replace(' ', '-')}`}>
-            {value}
+          <p className="text-lg sm:text-xl lg:text-2xl xl:text-3xl font-bold text-foreground mt-1 sm:mt-2 break-words" data-testid={`stat-value-${title.toLowerCase().replace(' ', '-')}`}>
+            {formatValue(value)}
           </p>
         </div>
         <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center flex-shrink-0 ${iconBgColor}`}>

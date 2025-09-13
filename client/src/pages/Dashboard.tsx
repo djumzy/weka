@@ -149,53 +149,58 @@ export default function Dashboard() {
             />
             <StatsCard
               title="Total Savings"
-              value={formatCurrency(stats?.totalSavings || 0)}
+              value={stats?.totalSavings || 0}
               icon={DollarSign}
               iconColor="text-blue-600"
               iconBgColor="bg-blue-100"
               trend={{ value: "+12.5%", label: "vs last month", isPositive: true }}
               onClick={() => {/* Navigate to transactions */}}
               className="cursor-pointer hover:shadow-lg transition-shadow"
+              isCurrency={true}
             />
             <StatsCard
               title="Total Welfare"
-              value={formatCurrency(stats?.totalWelfare || 0)}
+              value={stats?.totalWelfare || 0}
               icon={UserCheck}
               iconColor="text-purple-600"
               iconBgColor="bg-purple-100"
               trend={{ value: formatCurrency(stats?.totalWelfare || 0), label: "welfare fund" }}
               onClick={() => {/* Navigate to welfare */}}
               className="cursor-pointer hover:shadow-lg transition-shadow"
+              isCurrency={true}
             />
             <StatsCard
               title="Cash in Box"
-              value={formatCurrency(stats?.totalCashInBox || 0)}
+              value={stats?.totalCashInBox || 0}
               icon={Wallet}
               iconColor="text-emerald-600"
               iconBgColor="bg-emerald-100"
               trend={{ value: formatCurrency(stats?.totalCashInBox || 0), label: "available" }}
               onClick={() => {/* Navigate to cashbox */}}
               className="cursor-pointer hover:shadow-lg transition-shadow"
+              isCurrency={true}
             />
             <StatsCard
               title="Loans Given"
-              value={formatCurrency(stats?.totalLoansGiven || 0)}
+              value={stats?.totalLoansGiven || 0}
               icon={FileText}
               iconColor="text-orange-600"
               iconBgColor="bg-orange-100"
               trend={{ value: `${stats?.activeLoans || 0} active`, label: "active loans", isPositive: true }}
               onClick={() => {/* Navigate to loans */}}
               className="cursor-pointer hover:shadow-lg transition-shadow"
+              isCurrency={true}
             />
             <StatsCard
               title="Interest Earned"
-              value={formatCurrency(stats?.totalInterest || 0)}
+              value={stats?.totalInterest || 0}
               icon={FileText}
               iconColor="text-indigo-600"
               iconBgColor="bg-indigo-100"
               trend={{ value: formatCurrency(stats?.totalInterest || 0), label: "total interest" }}
               onClick={() => {/* Navigate to interest report */}}
               className="cursor-pointer hover:shadow-lg transition-shadow"
+              isCurrency={true}
             />
             <StatsCard
               title="Active Loans"
