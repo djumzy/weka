@@ -76,16 +76,16 @@ export default function Dashboard() {
       <AdminSidebar />
 
       <main className="flex-1 overflow-hidden">
-        {/* Top Bar */}
-        <header className="bg-card border-b border-border px-6 py-4">
-          <div className="flex items-center justify-between">
+        {/* Top Bar - Mobile Responsive */}
+        <header className="bg-card border-b border-border px-3 sm:px-6 py-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h2 className="text-2xl font-bold text-foreground" data-testid="page-title">Dashboard</h2>
-              <p className="text-muted-foreground">Welcome back! Here's an overview of your WEKA groups.</p>
+              <h2 className="text-xl sm:text-2xl font-bold text-foreground" data-testid="page-title">Dashboard</h2>
+              <p className="text-sm sm:text-base text-muted-foreground">Welcome back! Here's an overview of your WEKA groups.</p>
             </div>
-            <div className="flex items-center space-x-4">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4">
               <Select value={selectedGroupId} onValueChange={setSelectedGroupId}>
-                <SelectTrigger className="w-48" data-testid="select-group-filter">
+                <SelectTrigger className="w-full sm:w-48" data-testid="select-group-filter">
                   <SelectValue placeholder="Select group" />
                 </SelectTrigger>
                 <SelectContent>
@@ -99,27 +99,30 @@ export default function Dashboard() {
               </Select>
 
               <Link href="/login">
-                <Button variant="outline">
+                <Button variant="outline" className="w-full sm:w-auto">
                   <User className="w-4 h-4 mr-2" />
-                  Unified Login
+                  <span className="hidden sm:inline">Unified Login</span>
+                  <span className="sm:hidden">Login</span>
                 </Button>
               </Link>
 
               <Button 
                 onClick={() => setIsNewGroupModalOpen(true)}
+                className="w-full sm:w-auto"
                 data-testid="button-new-group"
               >
                 <Plus className="w-4 h-4 mr-2" />
-                New Group
+                <span className="hidden sm:inline">New Group</span>
+                <span className="sm:hidden">New Group</span>
               </Button>
             </div>
           </div>
         </header>
 
-        {/* Dashboard Content */}
-        <div className="p-6 overflow-y-auto max-h-[calc(100vh-88px)]">
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        {/* Dashboard Content - Mobile Responsive */}
+        <div className="p-3 sm:p-6 overflow-y-auto max-h-[calc(100vh-88px)]">
+          {/* Enhanced Stats Cards - Mobile Responsive */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6 mb-6 sm:mb-8">
             <StatsCard
               title="Total Groups"
               value={stats?.totalGroups || 0}
@@ -127,6 +130,8 @@ export default function Dashboard() {
               iconColor="text-primary"
               iconBgColor="bg-primary/10"
               trend={{ value: "+2", label: "this month", isPositive: true }}
+              onClick={() => {/* Navigate to groups */}}
+              className="cursor-pointer hover:shadow-lg transition-shadow"
             />
             <StatsCard
               title="Total Members"
@@ -139,6 +144,8 @@ export default function Dashboard() {
                 label: "gender breakdown", 
                 isPositive: true 
               }}
+              onClick={() => {/* Navigate to members */}}
+              className="cursor-pointer hover:shadow-lg transition-shadow"
             />
             <StatsCard
               title="Total Savings"
@@ -147,6 +154,8 @@ export default function Dashboard() {
               iconColor="text-blue-600"
               iconBgColor="bg-blue-100"
               trend={{ value: "+12.5%", label: "vs last month", isPositive: true }}
+              onClick={() => {/* Navigate to transactions */}}
+              className="cursor-pointer hover:shadow-lg transition-shadow"
             />
             <StatsCard
               title="Total Welfare"
@@ -155,30 +164,48 @@ export default function Dashboard() {
               iconColor="text-purple-600"
               iconBgColor="bg-purple-100"
               trend={{ value: formatCurrency(stats?.totalWelfare || 0), label: "welfare fund" }}
+              onClick={() => {/* Navigate to welfare */}}
+              className="cursor-pointer hover:shadow-lg transition-shadow"
             />
             <StatsCard
-              title="Available Cash in Box"
+              title="Cash in Box"
               value={formatCurrency(stats?.totalCashInBox || 0)}
               icon={Wallet}
               iconColor="text-emerald-600"
               iconBgColor="bg-emerald-100"
-              trend={{ value: formatCurrency(stats?.totalCashInBox || 0), label: "total available" }}
+              trend={{ value: formatCurrency(stats?.totalCashInBox || 0), label: "available" }}
+              onClick={() => {/* Navigate to cashbox */}}
+              className="cursor-pointer hover:shadow-lg transition-shadow"
             />
             <StatsCard
-              title="Total Loans Given"
+              title="Loans Given"
               value={formatCurrency(stats?.totalLoansGiven || 0)}
               icon={FileText}
               iconColor="text-orange-600"
               iconBgColor="bg-orange-100"
               trend={{ value: `${stats?.activeLoans || 0} active`, label: "active loans", isPositive: true }}
+              onClick={() => {/* Navigate to loans */}}
+              className="cursor-pointer hover:shadow-lg transition-shadow"
             />
             <StatsCard
-              title="Total Interest"
+              title="Interest Earned"
               value={formatCurrency(stats?.totalInterest || 0)}
               icon={FileText}
               iconColor="text-indigo-600"
               iconBgColor="bg-indigo-100"
-              trend={{ value: formatCurrency(stats?.totalInterest || 0), label: "interest earned" }}
+              trend={{ value: formatCurrency(stats?.totalInterest || 0), label: "total interest" }}
+              onClick={() => {/* Navigate to interest report */}}
+              className="cursor-pointer hover:shadow-lg transition-shadow"
+            />
+            <StatsCard
+              title="Active Loans"
+              value={stats?.activeLoans || 0}
+              icon={Calendar}
+              iconColor="text-red-600"
+              iconBgColor="bg-red-100"
+              trend={{ value: `${stats?.activeLoans || 0} loans`, label: "currently active" }}
+              onClick={() => {/* Navigate to active loans */}}
+              className="cursor-pointer hover:shadow-lg transition-shadow"
             />
           </div>
 

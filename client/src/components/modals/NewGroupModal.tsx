@@ -94,9 +94,9 @@ export function NewGroupModal({ open, onOpenChange }: NewGroupModalProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto" data-testid="new-group-modal">
+      <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto w-[95vw] sm:w-full" data-testid="new-group-modal">
         <DialogHeader>
-          <DialogTitle>Create New Group</DialogTitle>
+          <DialogTitle className="text-lg sm:text-xl">Create New Group</DialogTitle>
         </DialogHeader>
 
         <Form {...form}>
