@@ -327,12 +327,105 @@ export default function MemberDashboard() {
         </Card>
       </div>
 
-      {/* Group Overview - Mobile Responsive */}
+      {/* Group Financial Summary Widget - Prominent Display */}
+      <Card className="border-2 border-primary/20 bg-gradient-to-r from-primary/5 to-blue-50 dark:from-primary/10 dark:to-blue-900/20">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+            <Building2 className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+            <span className="text-primary font-bold">Group Financial Summary</span>
+          </CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Complete overview of your group's financial position
+          </p>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+            {/* Total Savings */}
+            <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border shadow-sm">
+              <div className="flex items-center gap-2 mb-2">
+                <DollarSign className="h-4 w-4 text-green-600" />
+                <span className="text-sm font-medium text-muted-foreground">Total Savings</span>
+              </div>
+              <div className="text-xl sm:text-2xl font-bold text-green-600">
+                {formatCurrency(groupStats.totalSavings)}
+              </div>
+              <div className="text-xs text-muted-foreground mt-1">
+                From {groupStats.totalMembers} members
+              </div>
+            </div>
+
+            {/* Cash in Box */}
+            <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border shadow-sm">
+              <div className="flex items-center gap-2 mb-2">
+                <Wallet className="h-4 w-4 text-blue-600" />
+                <span className="text-sm font-medium text-muted-foreground">Cash in Box</span>
+              </div>
+              <div className="text-xl sm:text-2xl font-bold text-blue-600">
+                {formatCurrency(groupStats.totalCashInBox)}
+              </div>
+              <div className="text-xs text-muted-foreground mt-1">
+                Available for loans
+              </div>
+            </div>
+
+            {/* Total Loans Given */}
+            <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border shadow-sm">
+              <div className="flex items-center gap-2 mb-2">
+                <TrendingUp className="h-4 w-4 text-orange-600" />
+                <span className="text-sm font-medium text-muted-foreground">Loans Given</span>
+              </div>
+              <div className="text-xl sm:text-2xl font-bold text-orange-600">
+                {formatCurrency(groupStats.totalLoansOutstanding)}
+              </div>
+              <div className="text-xs text-muted-foreground mt-1">
+                Outstanding amount
+              </div>
+            </div>
+
+            {/* Total Interest Earned */}
+            <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border shadow-sm">
+              <div className="flex items-center gap-2 mb-2">
+                <Calculator className="h-4 w-4 text-purple-600" />
+                <span className="text-sm font-medium text-muted-foreground">Interest Earned</span>
+              </div>
+              <div className="text-xl sm:text-2xl font-bold text-purple-600">
+                {formatCurrency(groupStats.totalInterest)}
+              </div>
+              <div className="text-xs text-muted-foreground mt-1">
+                At {groupStats.interestRate}% rate
+              </div>
+            </div>
+          </div>
+
+          {/* Additional Details Row */}
+          <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border">
+              <div className="text-sm text-muted-foreground mb-1">Total Shares</div>
+              <div className="text-lg font-semibold">{groupStats.totalShares.toLocaleString()}</div>
+              <div className="text-xs text-muted-foreground">@ {formatCurrency(groupStats.shareValue)} each</div>
+            </div>
+            
+            <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border">
+              <div className="text-sm text-muted-foreground mb-1">Total Welfare</div>
+              <div className="text-lg font-semibold text-green-600">{formatCurrency(groupStats.totalWelfare)}</div>
+              <div className="text-xs text-muted-foreground">Member contributions</div>
+            </div>
+            
+            <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border">
+              <div className="text-sm text-muted-foreground mb-1">Original Loan Amount</div>
+              <div className="text-lg font-semibold text-orange-600">{formatCurrency(groupStats.totalOriginalLoans)}</div>
+              <div className="text-xs text-muted-foreground">Principal borrowed</div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Group Overview - Detailed Breakdown */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
             <Building2 className="h-4 w-4 sm:h-5 sm:w-5" />
-            Group Overview
+            Detailed Group Information
           </CardTitle>
         </CardHeader>
         <CardContent>
